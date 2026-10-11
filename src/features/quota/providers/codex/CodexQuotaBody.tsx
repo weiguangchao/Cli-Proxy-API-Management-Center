@@ -12,9 +12,7 @@ import {
   PREMIUM_CODEX_PLAN_TYPES,
   buildResetDisplay,
   parseIsoToMs,
-  resolveResetMs,
 } from '@/utils/quota';
-import { formatDateTimeValue } from '@/utils/format';
 import { useNow } from '@/hooks/useNow';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
@@ -42,9 +40,6 @@ export function CodexQuotaBody({ quota, classes, layout }: QuotaBodyProps<CodexQ
   );
   const windows = quota.windows ?? [];
   const planType = quota.planType ?? null;
-  const subscriptionActiveUntil = quota.subscriptionActiveUntil ?? null;
-  const creditBalance = quota.creditBalance ?? null;
-  const creditsUnlimited = quota.creditsUnlimited === true;
   const rateLimitResetCreditsAvailableCount = quota.rateLimitResetCreditsAvailableCount ?? null;
   const rateLimitResetCredits = quota.rateLimitResetCredits ?? [];
   const rateLimitResetCreditsError = quota.rateLimitResetCreditsError ?? '';
@@ -68,43 +63,12 @@ export function CodexQuotaBody({ quota, classes, layout }: QuotaBodyProps<CodexQ
   const planLabel = getPlanLabel(planType);
   const planValueClass = getPlanValueClass(planType, classes);
 
-  // Renewal was the one date on this card in a different shape (a full
-  // toLocaleString). Reformatted from the instant so it reads like the rest,
-  // falling back to the old rendering when the payload isn't parseable.
-  const subscriptionMs = resolveResetMs([subscriptionActiveUntil]);
-  const expiryDisplay = subscriptionActiveUntil
-    ? buildResetDisplay(
-        subscriptionMs === null ? formatDateTimeValue(subscriptionActiveUntil) : null,
-        subscriptionMs,
-        now,
-        locale
-      )
-    : null;
-
   const planChip = planLabel && (
     <span className={classes.codexPlanItem}>
       <span className={classes.codexPlanLabel}>{t('codex_quota.plan_label')}</span>
       <span className={planValueClass}>{planLabel}</span>
     </span>
   );
-  const expiryChip = expiryDisplay && (
-    <span className={classes.codexPlanItem}>
-      <span className={classes.codexPlanLabel}>{t('codex_quota.expires_label')}</span>
-      <span className={classes.codexPlanValue}>{expiryDisplay.absolute}</span>
-      {expiryDisplay.relative && (
-        <span className={classes.quotaResetRelative}>{expiryDisplay.relative}</span>
-      )}
-    </span>
-  );
-  const balanceChip = (creditsUnlimited || creditBalance !== null) && (
-    <span className={classes.codexPlanItem}>
-      <span className={classes.codexPlanLabel}>{t('codex_quota.credit_balance_label')}</span>
-      <span className={classes.codexPlanValue}>
-        {creditsUnlimited ? t('codex_quota.credit_unlimited') : creditBalance}
-      </span>
-    </span>
-  );
-  const hasFacts = expiryDisplay !== null || creditsUnlimited || creditBalance !== null;
 
   const resetCreditDetails = (
     <>
@@ -171,30 +135,14 @@ export function CodexQuotaBody({ quota, classes, layout }: QuotaBodyProps<CodexQ
   if (layout) {
     return layout({
       plan: planLabel && <span className={planValueClass}>{planLabel}</span>,
-      details: (
-        <>
-          {hasFacts && (
-            <div className={classes.codexPlan}>
-              {expiryChip}
-              {balanceChip}
-            </div>
-          )}
-          {resetCreditDetails}
-        </>
-      ),
+      details: resetCreditDetails,
       windows: windowRows,
     });
   }
 
   return (
     <>
-      {(planLabel || hasFacts) && (
-        <div className={classes.codexPlan}>
-          {planChip}
-          {expiryChip}
-          {balanceChip}
-        </div>
-      )}
+      {planChip && <div className={classes.codexPlan}>{planChip}</div>}
       {resetCreditDetails}
       {windowRows}
     </>
