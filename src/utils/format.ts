@@ -25,6 +25,22 @@ export function maskApiKey(key: string): string {
 }
 
 /**
+ * 邮箱脱敏：local part 只留前约三分之一（至多 3 位），域名保留以便辨认账号来源
+ */
+export function maskEmail(email: string): string {
+  const trimmed = String(email || '').trim();
+  const at = trimmed.lastIndexOf('@');
+  const local = at > 0 ? trimmed.slice(0, at) : trimmed;
+  const domain = at > 0 ? trimmed.slice(at) : '';
+  if (!local) {
+    return '';
+  }
+
+  const visibleChars = Math.min(3, Math.ceil(local.length / 3));
+  return `${local.slice(0, visibleChars)}***${domain}`;
+}
+
+/**
  * 格式化文件大小
  */
 export function formatFileSize(bytes: number): string {

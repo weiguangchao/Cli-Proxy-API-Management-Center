@@ -525,9 +525,6 @@
     "expires_label": "续期时间",
     "credit_balance_label": "Credit 余额",
     "credit_unlimited": "无限额",
-    "reset_credits_label": "主动重置次数",
-    "reset_credits_expiry_label": "主动重置过期时间（{{timezone}}）",
-    "reset_credit_number": "第 {{index}} 次",
     "reset_credits_expiry_failed": "主动重置过期时间获取失败：{{message}}",
     "reset_credits_invalid_payload": "主动重置过期时间响应格式无效",
     "reset_button": "重置额度",
@@ -1561,6 +1558,8 @@
     }
   },
   "quota_management": {
+    "resets_remaining": "剩余重置次数",
+    "reset_expiry": "过期时间",
     "search_label": "搜索账号",
     "search_placeholder": "按文件名或邮箱搜索",
     "search_empty_title": "没有匹配的账号",
@@ -2231,11 +2230,7 @@
     }
   },
   "claude_reset": {
-    "expiry_title": "主动重置过期时间（{{timezone}}）",
-    "grant_number": "第 {{index}} 批",
-    "expiry_unknown": "到期时间未知",
     "retry_confirm": "使用原请求 ID 重试“{{name}}”结果未知的重置？可能已消耗一次重置。请在 10 分钟内重试；请勿重新加载页面或在其他标签页发起新请求。",
-    "remaining": "剩余重置次数",
     "title": "储备重置次数",
     "scope": "使用有限的重置权益清除符合条件的 Claude 用量窗口。仅在确定要消耗一次重置时确认。恢复仅限当前标签页和会话；结果未知时，请勿刷新页面或使用其他标签页。",
     "loading": "加载中…",
@@ -2245,8 +2240,6 @@
     "expired": "重试窗口已过期，当前会话已阻止进一步重置。请先检查 Claude 账户状态。",
     "retry": "重试同一请求",
     "empty": "没有储备重置权益。",
-    "count": "剩余 {{left}} / {{total}} 次重置",
-    "ends": "到期：{{date}}",
     "use": "重置额度",
     "confirm": "确认重置",
     "confirm_text": "确定消耗一次重置，清除“{{name}}”符合条件的用量限制？重置次数有限。",

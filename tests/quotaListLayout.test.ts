@@ -16,6 +16,8 @@ import { CodexQuotaBody } from '@/features/quota/providers/codex/CodexQuotaBody'
 import { KimiQuotaBody } from '@/features/quota/providers/kimi/KimiQuotaBody';
 import { XaiQuotaBody } from '@/features/quota/providers/xai/XaiQuotaBody';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses, type QuotaBodySections } from '@/features/quota/types';
+import { maskEmail } from '@/utils/format';
+import { getQuotaAccountLabel } from '@/utils/quota/identity';
 import { DAY_MS, HOUR_MS } from '@/utils/time/durations';
 import type {
   AuthFileItem,
@@ -80,6 +82,34 @@ describe('groupQuotaEntries', () => {
   test('renders nothing for an empty page', () => {
     expect(groupQuotaEntries([], 'default')).toEqual([]);
     expect(groupQuotaEntries([], 'soonest')).toEqual([]);
+  });
+});
+
+describe('account column', () => {
+  test('masks the email local part and keeps the domain', () => {
+    expect(maskEmail('alice.wonderland@example.com')).toBe('ali***@example.com');
+    expect(maskEmail('bob@example.org')).toBe('b***@example.org');
+    expect(maskEmail('ab@example.net')).toBe('a***@example.net');
+    expect(maskEmail('  carol@example.net ')).toBe('ca***@example.net');
+    expect(maskEmail('a.b@c@example.com')).toBe('a.***@example.com');
+    expect(maskEmail('not-an-email')).toBe('not***');
+    expect(maskEmail('')).toBe('');
+  });
+
+  test('shows the masked email and never the file name when an email exists', () => {
+    const file = {
+      name: 'claude-a96c9d90-alice.wonderland@example.com-pro.json',
+      email: 'alice.wonderland@example.com',
+    } as AuthFileItem;
+    expect(getQuotaAccountLabel(file)).toBe('ali***@example.com');
+  });
+
+  test('falls back to the file name, never to account secrets', () => {
+    expect(getQuotaAccountLabel({ name: 'kimi-1.json' } as AuthFileItem)).toBe('kimi-1.json');
+    expect(getQuotaAccountLabel({ name: 'k.json', email: '  ' } as AuthFileItem)).toBe('k.json');
+    expect(getQuotaAccountLabel({ name: 'k.json', email: 42, account: 'sk-secret' } as never)).toBe(
+      'k.json'
+    );
   });
 });
 
@@ -187,6 +217,7 @@ describe('QuotaAccountRow contract', () => {
   // names (see quotaClassContract.test.ts), so its wiring is checked as source.
   const source = () => Bun.file('src/features/quota/components/QuotaAccountRow.tsx').text();
   const bodyCss = () => Bun.file('src/features/quota/components/QuotaBody.module.scss').text();
+  const rowCss = () => Bun.file('src/features/quota/components/QuotaAccountRow.module.scss').text();
 
   test('lays out the body through its sections and keeps actions outside it', async () => {
     const row = await source();
@@ -197,6 +228,28 @@ describe('QuotaAccountRow contract', () => {
     expect(bodyAt).toBeGreaterThan(-1);
     expect(actionsAt).toBeGreaterThan(bodyAt);
     expect(row.slice(bodyAt, actionsAt)).toContain(')}');
+  });
+
+  test('shows the masked account label instead of the file name', async () => {
+    const row = await source();
+    expect(row).toContain('getQuotaAccountLabel(file)');
+    expect(row).not.toContain('getQuotaDisplayName');
+  });
+
+  test('draws no divider under the last row of a provider group', async () => {
+    const css = await rowCss();
+    expect(css).toMatch(
+      /\.row \{[\s\S]*?border-bottom: 1px solid[\s\S]*?&:last-child \{\s*border-bottom: 0;/
+    );
+  });
+
+  test('stretches the idle load button over every column after the account', async () => {
+    const row = await source();
+    const css = await rowCss();
+    expect(row).toContain("data-idle={status === 'idle' ? '' : undefined}");
+    // Actions only exist once a fetch was attempted, so the idle row has nothing to its right.
+    expect(row).toContain("{status !== 'idle' && (");
+    expect(css).toMatch(/\.row\[data-idle\] \.windows \{\s*grid-column-end: -1;/);
   });
 
   test('dims exhausted rows but keeps the depleted limit at full brightness', async () => {

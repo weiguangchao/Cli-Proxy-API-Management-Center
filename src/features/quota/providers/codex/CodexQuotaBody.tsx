@@ -11,15 +11,14 @@ import {
   resolvePlanTier,
   PREMIUM_CODEX_PLAN_TYPES,
   buildResetDisplay,
-  formatInstantShort,
   parseIsoToMs,
   resolveResetMs,
 } from '@/utils/quota';
-import { resolveTimeZoneLabel } from '@/utils/time/timezone';
 import { formatDateTimeValue } from '@/utils/format';
 import { useNow } from '@/hooks/useNow';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
+import { QuotaResetDetails } from '../../components/QuotaResetDetails';
 import { collectQuotaRowInstants, pickUrgentRowId, resetCreditRowId } from '../../resetSchedule';
 import type { QuotaBodyProps, QuotaClassMap } from '../../types';
 
@@ -105,67 +104,31 @@ export function CodexQuotaBody({ quota, classes, layout }: QuotaBodyProps<CodexQ
       </span>
     </span>
   );
-  const resetCountChip = rateLimitResetCreditsAvailableCount !== null && (
-    <span className={classes.codexPlanItem}>
-      <span className={classes.codexPlanLabel}>{t('codex_quota.reset_credits_label')}</span>
-      <span className={classes.codexPlanValue}>
-        {rateLimitResetCreditsAvailableCount.toString()}
-      </span>
-    </span>
-  );
-  const hasFacts =
-    expiryDisplay !== null ||
-    creditsUnlimited ||
-    creditBalance !== null ||
-    rateLimitResetCreditsAvailableCount !== null;
+  const hasFacts = expiryDisplay !== null || creditsUnlimited || creditBalance !== null;
 
-  const resetCreditDetails =
-    rateLimitResetCredits.length > 0 ? (
-      <div className={classes.codexResetCredits}>
-        <div className={classes.codexResetCreditsTitle}>
-          {t('codex_quota.reset_credits_expiry_label', { timezone: resolveTimeZoneLabel() })}
+  const resetCreditDetails = (
+    <>
+      {(rateLimitResetCreditsAvailableCount !== null || rateLimitResetCredits.length > 0) && (
+        <QuotaResetDetails
+          count={rateLimitResetCreditsAvailableCount}
+          expiresAt={rateLimitResetCredits
+            .filter((credit) => credit.status === 'available')
+            .map((credit) => parseIsoToMs(credit.expiresAt))}
+          classes={classes}
+          soon={rateLimitResetCredits.some(
+            (credit, index) => resetCreditRowId(credit, index) === soonestRowId
+          )}
+        />
+      )}
+      {rateLimitResetCreditsAvailableCount !== 0 && rateLimitResetCreditsError && (
+        <div className={classes.codexResetCreditsError}>
+          {t('codex_quota.reset_credits_expiry_failed', {
+            message: rateLimitResetCreditsError,
+          })}
         </div>
-        {rateLimitResetCredits.map((credit, index) => {
-          const expiresAtMs = parseIsoToMs(credit.expiresAt);
-          const expiresDisplay = buildResetDisplay(
-            expiresAtMs === null ? credit.expiresAt : formatInstantShort(expiresAtMs),
-            expiresAtMs,
-            now,
-            locale
-          );
-          // One expression for both the key and the highlight — two copies
-          // that drift would emphasize the wrong row.
-          const rowId = resetCreditRowId(credit, index);
-          const soon = rowId === soonestRowId;
-          return (
-            <div
-              key={rowId}
-              className={
-                soon
-                  ? `${classes.codexResetCreditRow} ${classes.codexResetCreditRowSoon}`
-                  : classes.codexResetCreditRow
-              }
-              title={soon ? t('quota_management.soonest_row_hint') : undefined}
-            >
-              <span className={classes.codexResetCreditLabel}>
-                {t('codex_quota.reset_credit_number', { index: index + 1 })}
-              </span>
-              <span className={classes.codexResetCreditTime}>
-                {expiresDisplay && (
-                  <QuotaResetLabel display={expiresDisplay} classes={classes} soon={soon} />
-                )}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    ) : rateLimitResetCreditsError ? (
-      <div className={classes.codexResetCreditsError}>
-        {t('codex_quota.reset_credits_expiry_failed', {
-          message: rateLimitResetCreditsError,
-        })}
-      </div>
-    ) : null;
+      )}
+    </>
+  );
 
   const windowRows =
     windows.length === 0 ? (
@@ -214,7 +177,6 @@ export function CodexQuotaBody({ quota, classes, layout }: QuotaBodyProps<CodexQ
             <div className={classes.codexPlan}>
               {expiryChip}
               {balanceChip}
-              {resetCountChip}
             </div>
           )}
           {resetCreditDetails}
@@ -231,7 +193,6 @@ export function CodexQuotaBody({ quota, classes, layout }: QuotaBodyProps<CodexQ
           {planChip}
           {expiryChip}
           {balanceChip}
-          {resetCountChip}
         </div>
       )}
       {resetCreditDetails}

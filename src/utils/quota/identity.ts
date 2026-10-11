@@ -1,4 +1,5 @@
 import type { AuthFileItem } from '@/types';
+import { maskEmail } from '@/utils/format';
 import { normalizeRecentRequestAuthIndex } from '@/utils/recentRequests';
 import { isDevinFile, isPluginQuotaFile } from './validators';
 
@@ -19,6 +20,12 @@ export function getQuotaDisplayName(file: AuthFileItem): string {
   if (!isDevinFile(file) && !isPluginQuotaFile(file)) return file.name;
   const identity = file.email?.trim() || normalizeRecentRequestAuthIndex(file.authIndex);
   return identity ? `${file.name} · ${identity}` : file.name;
+}
+
+/** Quota list account column: the masked email, or the display name when there is none. */
+export function getQuotaAccountLabel(file: AuthFileItem): string {
+  const email = typeof file.email === 'string' ? file.email.trim() : '';
+  return email ? maskEmail(email) : getQuotaDisplayName(file);
 }
 
 /** Resolve a cache identity back to the physical filename used by file mutations. */

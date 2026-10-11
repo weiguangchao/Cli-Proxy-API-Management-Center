@@ -67,6 +67,65 @@ afterEach(() => {
 });
 
 describe('Codex current usage payload', () => {
+  test.each(['primary_window', 'secondary_window'] as const)(
+    'omits code-review weekly limits reported in %s',
+    (windowKey) => {
+      const windows = buildCodexQuotaWindows(
+        {
+          ...CURRENT_CODEX_USAGE_PAYLOAD,
+          code_review_rate_limit: {
+            [windowKey]: { used_percent: 100, limit_window_seconds: 604800 },
+          },
+        },
+        t
+      );
+
+      expect(windows.map(({ id }) => id)).toEqual(['weekly', 'gpt-5-3-codex-spark-weekly-0']);
+    }
+  );
+
+  test('keeps code-review five-hour and monthly limits', () => {
+    const windows = buildCodexQuotaWindows(
+      {
+        code_review_rate_limit: {
+          primary_window: { used_percent: 12, limit_window_seconds: 18000 },
+          secondary_window: { used_percent: 34, limit_window_seconds: 2592000 },
+        },
+      },
+      t
+    );
+
+    expect(windows.map(({ id }) => id)).toEqual(['code-review-five-hour', 'code-review-monthly']);
+    expect(windows.map(({ usedPercent }) => usedPercent)).toEqual([12, 34]);
+  });
+
+  test.each(['primary_window', 'secondary_window'] as const)(
+    'a lone weekly limit in %s creates no five-hour placeholder',
+    (windowKey) => {
+      const windows = buildCodexQuotaWindows(
+        {
+          rate_limit: {
+            [windowKey]: {
+              used_percent: 25,
+              limit_window_seconds: 604800,
+              reset_at: 1785902974,
+            },
+          },
+        },
+        t
+      );
+
+      expect(windows).toHaveLength(1);
+      expect(windows[0]).toMatchObject({
+        id: 'weekly',
+        labelKey: 'codex_quota.secondary_window',
+        usedPercent: 25,
+        periodHours: 168,
+        resetAtMs: 1785902974000,
+      });
+    }
+  );
+
   test('parses the proxied JSON body and classifies both primary weekly windows', () => {
     const payload = parseCodexUsagePayload(JSON.stringify(CURRENT_CODEX_USAGE_PAYLOAD));
     expect(payload).not.toBeNull();

@@ -303,8 +303,6 @@ test('all grant messages and confirmation are translated in four locales', async
     expect(Object.keys(locale).sort()).toEqual(Object.keys(locales[0]).sort());
     expect(locale.confirm_text).toContain('{{name}}');
     expect(locale.retry_confirm).toContain('{{name}}');
-    expect(typeof locale.remaining).toBe('string');
-    expect(locale.count).toContain('{{left}}');
     for (const key of [
       ...ANTHROPIC_RESET_RESULTS,
       'auth_error',
@@ -344,7 +342,7 @@ test('card selection prefers usable recommendation and has deterministic fallbac
 test('Claude row uses Codex count and action styles and shared confirmation, not a grant dialog', async () => {
   const card = await Bun.file('src/features/quota/components/QuotaAccountRow.tsx').text();
   const hook = await Bun.file('src/features/quota/providers/claude/ClaudeResetGrants.tsx').text();
-  expect(card).toContain('quotaClasses.codexPlanValue}>{claudeReset.count');
+  expect(card).toContain('count={claudeReset.count}');
   expect(card).toContain('disabled={claudeReset.blocked}');
   expect(card).toContain('onClick={claudeReset.confirm}');
   expect(hook).toContain('showConfirmation({');

@@ -1,7 +1,7 @@
 @use '../../../styles/mixins' as *;
 
 /* ============================================================
- * 额度列表行 —— 无卡片底，行间一条发丝分隔线。
+ * 额度列表行 —— 无卡片底，行间一条发丝分隔线（组内末行不画）。
  * 列宽由列表容器的 --quota-row-columns 统一下发，跨行同列对齐；
  * 窄容器（容器查询 quota-list）下折成：账户 + 动作 / 窗口 / 细节。
  * ============================================================ */
@@ -20,6 +20,10 @@
   padding: 20px 0;
   border-bottom: 1px solid var(--border-color);
   min-width: 0;
+
+  &:last-child {
+    border-bottom: 0;
+  }
 }
 
 /* 首次数据到达时的一次性级联入场；切 tab / 翻页 / 刷新不重播 */
@@ -133,6 +137,11 @@
 
 .windows {
   grid-area: windows;
+}
+
+/* idle 不渲染细节与动作：加载按钮从窗口列一直铺到行尾 */
+.row[data-idle] .windows {
+  grid-column-end: -1;
 }
 
 .details {

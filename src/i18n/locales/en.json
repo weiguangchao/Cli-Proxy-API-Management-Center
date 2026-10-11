@@ -540,9 +540,6 @@
     "expires_label": "Renewal time",
     "credit_balance_label": "Credit balance",
     "credit_unlimited": "Unlimited",
-    "reset_credits_label": "Manual resets",
-    "reset_credits_expiry_label": "Manual reset expiry ({{timezone}})",
-    "reset_credit_number": "Reset {{index}}",
     "reset_credits_expiry_failed": "Failed to load manual reset expiry: {{message}}",
     "reset_credits_invalid_payload": "Invalid manual reset expiry response",
     "reset_button": "Reset quota",
@@ -1562,6 +1559,8 @@
     }
   },
   "quota_management": {
+    "resets_remaining": "Resets remaining",
+    "reset_expiry": "Expiry time",
     "search_label": "Search accounts",
     "search_placeholder": "Search by filename or email",
     "search_empty_title": "No matching accounts",
@@ -2232,11 +2231,7 @@
     }
   },
   "claude_reset": {
-    "expiry_title": "Manual reset expiry ({{timezone}})",
-    "grant_number": "Grant {{index}}",
-    "expiry_unknown": "Expiry unknown",
     "retry_confirm": "Retry the unknown reset for “{{name}}” with its original request ID? A reset may already have been spent. Retry within 10 minutes; do not reload or start another claim in another tab.",
-    "remaining": "Resets remaining",
     "title": "Banked resets",
     "scope": "Uses a limited reset grant to clear eligible Claude usage windows. Only confirm when you want to spend a reset. Recovery is limited to this tab/session; do not reload or use another tab while an outcome is unknown.",
     "loading": "Loading…",
@@ -2246,8 +2241,6 @@
     "expired": "The retry window has expired. Further claims are blocked in this session. Check your Claude account before taking any further action.",
     "retry": "Retry the same claim",
     "empty": "No banked reset grants.",
-    "count": "{{left}} / {{total}} resets remaining",
-    "ends": "Expires: {{date}}",
     "use": "Reset limits",
     "confirm": "Confirm reset",
     "confirm_text": "Spend one reset to clear eligible usage limits for “{{name}}”? This uses a limited reset grant.",

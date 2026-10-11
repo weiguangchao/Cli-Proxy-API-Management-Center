@@ -79,10 +79,6 @@ export const buildCodexQuotaWindows = (
       id: 'code-review-five-hour',
       labelKey: 'codex_quota.code_review_primary_window',
     },
-    codeReviewWeekly: {
-      id: 'code-review-weekly',
-      labelKey: 'codex_quota.code_review_secondary_window',
-    },
     codeReviewMonthly: {
       id: 'code-review-monthly',
       labelKey: 'codex_quota.code_review_team_secondary_window',
@@ -223,20 +219,18 @@ export const buildCodexQuotaWindows = (
     codeReviewLimitReached,
     codeReviewAllowed
   );
-  const codeReviewSecondaryWindowMeta = selectSecondaryWindowMeta(
-    codeReviewWindows.weeklyWindow,
-    WINDOW_META.codeReviewWeekly,
-    WINDOW_META.codeReviewMonthly
-  );
-  addWindow(
-    codeReviewSecondaryWindowMeta.id,
-    t(codeReviewSecondaryWindowMeta.labelKey),
-    codeReviewSecondaryWindowMeta.labelKey,
-    undefined,
-    codeReviewWindows.weeklyWindow,
-    codeReviewLimitReached,
-    codeReviewAllowed
-  );
+  // Omit the code-review weekly window from every quota display.
+  if (isMonthlyWindow(codeReviewWindows.weeklyWindow)) {
+    addWindow(
+      WINDOW_META.codeReviewMonthly.id,
+      t(WINDOW_META.codeReviewMonthly.labelKey),
+      WINDOW_META.codeReviewMonthly.labelKey,
+      undefined,
+      codeReviewWindows.weeklyWindow,
+      codeReviewLimitReached,
+      codeReviewAllowed
+    );
+  }
 
   const normalizeWindowId = (raw: string) =>
     raw

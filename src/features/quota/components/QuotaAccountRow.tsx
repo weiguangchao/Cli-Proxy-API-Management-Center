@@ -1,7 +1,7 @@
 /**
- * 额度列表行：账户名 + 套餐 | 横排的用量窗口 | 细节 + 动作。
+ * 额度列表行：脱敏邮箱 + 套餐 | 横排的用量窗口 | 细节 + 动作。
  *
- * - idle：窗口列是一个点击加载按钮（上游直连有速率考虑，不自动拉取）；
+ * - idle：账户列之后整行是一个点击加载按钮（上游直连有速率考虑，不自动拉取）；
  * - loading：幽灵窗口列骨架（aria-busy，文字等价视觉隐藏）；
  * - error：失败色条 + 刷新即重试；
  * - success：provider Body 以 layout 回调把三个分区交给本行排版。
@@ -16,7 +16,7 @@ import { IconRefreshCw } from '@/components/ui/icons';
 import { useNow } from '@/hooks/useNow';
 import type { ResolvedTheme } from '@/types';
 import { resolveQuotaErrorMessage } from '@/utils/quota';
-import { getQuotaDisplayName } from '@/utils/quota/identity';
+import { getQuotaAccountLabel } from '@/utils/quota/identity';
 import {
   getAuthFileIcon,
   getThemeSurfaceIconBackground,
@@ -67,7 +67,7 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
   const now = useNow();
   const adapter = QUOTA_ADAPTERS[entry.type];
   const file = entry.file;
-  const displayName = getQuotaDisplayName(file);
+  const accountLabel = getQuotaAccountLabel(file);
 
   // 挂载时捕获一次延迟：后续 props 变 null 不影响本行（React 19 禁渲染期读 ref）
   const [mountEntranceDelayMs] = useState<number | null>(entranceDelayMs ?? null);
@@ -115,16 +115,18 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
     Boolean(adapter.resetQuota) &&
     quota !== undefined &&
     Boolean(adapter.canResetQuota?.(quota));
+  // An unresolved claim retains its idempotent retry action, even after the balance reaches zero.
+  const showClaudeReset =
+    entry.type === 'claude' &&
+    ((claudeReset.count ?? 0) > 0 || claudeReset.buttonLabel === 'retry');
 
   const claudeDetails = entry.type === 'claude' && status === 'success' && (
     <>
-      <div className={quotaClasses.codexPlan}>
-        <span className={quotaClasses.codexPlanItem}>
-          <span className={quotaClasses.codexPlanLabel}>{t('claude_reset.remaining')}</span>
-          <span className={quotaClasses.codexPlanValue}>{claudeReset.count ?? '--'}</span>
-        </span>
-      </div>
-      <ClaudeResetGrantDetails grants={claudeReset.grants} classes={quotaClasses} />
+      <ClaudeResetGrantDetails
+        count={claudeReset.count}
+        grants={claudeReset.grants}
+        classes={quotaClasses}
+      />
       {claudeReset.message && (
         <div role="status" className={quotaClasses.codexResetCreditsError}>
           {t(`claude_reset.${claudeReset.message}`)}
@@ -154,8 +156,8 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
           </span>
         )}
         <div className={styles.identityText}>
-          <span className={styles.name} title={displayName}>
-            {displayName}
+          <span className={styles.name} title={accountLabel}>
+            {accountLabel}
           </span>
           {(plan || recoveryLabel) && (
             <span className={styles.subline}>
@@ -202,6 +204,7 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
       className={`${styles.row} ${mountEntranceDelayMs === null ? '' : styles.rowEnter}`}
       style={entranceStyle}
       data-exhausted={exhaustion ? '' : undefined}
+      data-idle={status === 'idle' ? '' : undefined}
     >
       {status === 'success' && quota ? (
         <adapter.Body quota={quota} classes={quotaClasses} layout={renderColumns} />
@@ -211,7 +214,7 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
 
       {status !== 'idle' && (
         <div className={styles.actions}>
-          {entry.type === 'claude' && (
+          {showClaudeReset && (
             <button
               type="button"
               className={styles.action}
