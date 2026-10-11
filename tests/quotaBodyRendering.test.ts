@@ -14,11 +14,17 @@ import i18n from '@/i18n';
 import { CodexQuotaBody } from '@/features/quota/providers/codex/CodexQuotaBody';
 import { ClaudeQuotaBody } from '@/features/quota/providers/claude/ClaudeQuotaBody';
 import { KimiQuotaBody } from '@/features/quota/providers/kimi/KimiQuotaBody';
+import { AntigravityQuotaBody } from '@/features/quota/providers/antigravity/AntigravityQuotaBody';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
 import { formatInstantShort } from '@/utils/quota';
 import { resolveTimeZoneLabel } from '@/utils/time/timezone';
 import { DAY_MS, HOUR_MS } from '@/utils/time/durations';
-import type { ClaudeQuotaState, CodexQuotaState, KimiQuotaState } from '@/types';
+import type {
+  AntigravityQuotaState,
+  ClaudeQuotaState,
+  CodexQuotaState,
+  KimiQuotaState,
+} from '@/types';
 
 const classes = bindQuotaClasses(
   Object.fromEntries(QUOTA_CLASS_KEYS.map((key) => [key, key])),
@@ -251,5 +257,44 @@ describe('ClaudeQuotaBody', () => {
     expect(markup).toContain('08-06 04:00');
     expect(markup).toMatch(/2 hours/);
     expect(markup).toMatch(/4 days/);
+  });
+});
+
+describe('AntigravityQuotaBody', () => {
+  test('renders group titles without the group model list', () => {
+    const quota: AntigravityQuotaState = {
+      status: 'success',
+      groups: [
+        {
+          id: 'gemini',
+          label: 'Gemini Models',
+          description: 'Models within this group: Gemini Flash, Gemini Pro',
+          buckets: [
+            {
+              id: 'gemini-weekly',
+              label: 'Weekly Limit',
+              remainingFraction: 1,
+              resetTime: new Date(now + 7 * DAY_MS).toISOString(),
+            },
+          ],
+        },
+      ],
+    };
+
+    for (const markup of [
+      renderToStaticMarkup(createElement(AntigravityQuotaBody, { quota, classes })),
+      renderToStaticMarkup(
+        createElement(AntigravityQuotaBody, {
+          quota,
+          classes,
+          layout: ({ windows }) => windows,
+        })
+      ),
+    ]) {
+      expect(markup).toContain('Gemini models');
+      expect(markup).toContain('Weekly limit');
+      expect(markup).not.toContain('Gemini Flash');
+      expect(markup).not.toContain('antigravityQuotaGroupDescription');
+    }
   });
 });

@@ -167,15 +167,11 @@ export function AntigravityQuotaBody({
           ANTIGRAVITY_GROUP_LABEL_KEYS,
           t
         );
-        const groupDescription = translateAntigravityQuotaDescription(group.description, t);
 
         return (
           <div key={group.id} className={classes.antigravityQuotaGroup}>
             <div className={classes.antigravityQuotaGroupHeader}>
               <span className={classes.antigravityQuotaGroupTitle}>{groupLabel}</span>
-              {groupDescription && (
-                <span className={classes.antigravityQuotaGroupDescription}>{groupDescription}</span>
-              )}
             </div>
             {group.buckets.map((bucket, index) => {
               const clamped = Math.max(0, Math.min(1, bucket.remainingFraction));
