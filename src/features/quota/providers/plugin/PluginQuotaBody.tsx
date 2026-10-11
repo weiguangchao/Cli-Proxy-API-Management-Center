@@ -12,33 +12,27 @@ const formatReset = (value: string | undefined): string => {
 const formatMetric = (metric: PluginQuotaMetric): string => {
   const value =
     metric.format === 'currency' && metric.currency
-      ? new Intl.NumberFormat(undefined, { style: 'currency', currency: metric.currency }).format(metric.value)
+      ? new Intl.NumberFormat(undefined, { style: 'currency', currency: metric.currency }).format(
+          metric.value
+        )
       : new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(metric.value);
   return metric.unit ? `${value} ${metric.unit}` : value;
 };
 
-export function PluginQuotaBody({ quota, classes }: QuotaBodyProps<PluginQuotaState>) {
+export function PluginQuotaBody({ quota, classes, layout }: QuotaBodyProps<PluginQuotaState>) {
   const { t } = useTranslation();
-  const plan = quota.subscription?.tierName || quota.subscription?.plan || quota.subscription?.tierId;
+  const plan =
+    quota.subscription?.tierName || quota.subscription?.plan || quota.subscription?.tierId;
 
-  return (
+  const metricChips = quota.summary.map((metric) => (
+    <span key={metric.key} className={classes.codexPlanItem}>
+      <span className={classes.codexPlanLabel}>{metric.label}</span>
+      <span className={classes.codexPlanValue}>{formatMetric(metric)}</span>
+    </span>
+  ));
+
+  const groupRows = (
     <>
-      {(plan || quota.summary.length > 0) && (
-        <div className={classes.codexPlan}>
-          {plan && (
-            <span className={classes.codexPlanItem}>
-              <span className={classes.codexPlanLabel}>{t('plugin_quota.plan_label')}</span>
-              <span className={classes.codexPlanValue}>{plan}</span>
-            </span>
-          )}
-          {quota.summary.map((metric) => (
-            <span key={metric.key} className={classes.codexPlanItem}>
-              <span className={classes.codexPlanLabel}>{metric.label}</span>
-              <span className={classes.codexPlanValue}>{formatMetric(metric)}</span>
-            </span>
-          ))}
-        </div>
-      )}
       {!plan && quota.summary.length === 0 && quota.groups.length === 0 ? (
         <div className={classes.quotaMessage}>{t('plugin_quota.empty_data')}</div>
       ) : (
@@ -47,7 +41,9 @@ export function PluginQuotaBody({ quota, classes }: QuotaBodyProps<PluginQuotaSt
             <div className={classes.antigravityQuotaGroupHeader}>
               <span className={classes.antigravityQuotaGroupTitle}>{group.label}</span>
               {group.description && (
-                <span className={classes.antigravityQuotaGroupDescription}>{group.description}</span>
+                <span className={classes.antigravityQuotaGroupDescription}>
+                  {group.description}
+                </span>
               )}
             </div>
             {group.buckets.map((bucket, index) => {
@@ -72,6 +68,31 @@ export function PluginQuotaBody({ quota, classes }: QuotaBodyProps<PluginQuotaSt
           </div>
         ))
       )}
+    </>
+  );
+
+  if (layout) {
+    return layout({
+      plan: plan && <span className={classes.codexPlanValue}>{plan}</span>,
+      details: metricChips.length > 0 && <div className={classes.codexPlan}>{metricChips}</div>,
+      windows: groupRows,
+    });
+  }
+
+  return (
+    <>
+      {(plan || quota.summary.length > 0) && (
+        <div className={classes.codexPlan}>
+          {plan && (
+            <span className={classes.codexPlanItem}>
+              <span className={classes.codexPlanLabel}>{t('plugin_quota.plan_label')}</span>
+              <span className={classes.codexPlanValue}>{plan}</span>
+            </span>
+          )}
+          {metricChips}
+        </div>
+      )}
+      {groupRows}
     </>
   );
 }

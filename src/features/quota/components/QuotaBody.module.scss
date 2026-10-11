@@ -1,66 +1,155 @@
 @use '../../../styles/mixins' as *;
 
 /* ============================================================
- * 额度卡片 body 的全页外衣（类型化契约见 features/quota/types.ts）。
+ * 额度 body 的列表外衣（类型化契约见 features/quota/types.ts）。
+ *
+ * 额度页把每个凭证渲染成一行：账户名 | 横排的用量窗口列 | 细节 + 动作。
+ * body 的三个分区（plan / windows / details）由 QuotaAccountRow 放进
+ * .listPlan / .listWindows / .listDetails 三个容器，本文件负责容器内部排版。
  *
  * 两段构成：
- * 1. 额度行 / 水位条 / Antigravity 分组 —— mono 遥测风，与紧凑外衣同族；
+ * 1. 额度行 / 水位条 / 分组 / 列表容器 —— 可随列表设计调整；
  * 2. 套餐徽章区（.codexPlan* 起至文件末尾）—— 从 pages/QuotaPage.module.scss
  *    第 429–1023 行逐字节搬迁的定稿资产（金卡 + Pro 20x 液态铂金，含暗色 /
  *    HDR / 减动效冻结帧 / 移动端降级）。**该区块禁止改动**：改配方等于重设计
- *    已验收的徽章，验证方式是与 git 历史做 diff（应为空）。
+ *    已验收的徽章，验证方式是与 git 历史做 diff（应为空）。列表语境下的
+ *    排版差异写在第 1 段的容器作用域里，不碰徽章配方。
  * ============================================================ */
 
-/* ---------- 额度行 ---------- */
+/* ---------- 列表容器 ---------- */
 
-.quotaRow {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+/* 用量窗口横排成等宽列；auto-fill 保留空轨道，跨行的同序窗口因此上下对齐。 */
+.listWindows {
+  --window-min: 168px;
+
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--window-min), 1fr));
+  gap: 14px 32px;
+  align-items: start;
   min-width: 0;
+
+  > .quotaMessage,
+  > .antigravityQuotaGroup {
+    grid-column: 1 / -1;
+  }
 }
 
-.quotaRowHeader {
+/* 账户名下的套餐行：普通档读作副标题，premium / elite 徽章保持定稿外观。 */
+.listPlan .codexPlanValue {
+  font-weight: inherit;
+  color: inherit;
+}
+
+/* 细节列：每条事实独占一行（标签 + 值），重置积分去掉卡片式描边。 */
+.listDetails {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   min-width: 0;
+
+  &:empty {
+    display: none;
+  }
+
+  .codexPlan {
+    gap: 4px 12px;
+    font-size: 12.5px;
+  }
+
+  .codexPlanItem {
+    flex-basis: 100%;
+  }
+
+  .codexResetCredits {
+    gap: 3px;
+    padding-top: 0;
+  }
+
+  .codexResetCreditsTitle {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+  }
+
+  .codexResetCreditRow {
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 12.5px;
+  }
+
+  /* 窄列里时间常折到第二行：左对齐，不贴右缘 */
+  .codexResetCreditTime {
+    margin-left: 0;
+    font-weight: 500;
+    text-align: left;
+  }
+
+  .codexResetCreditsError {
+    font-size: 12px;
+  }
+}
+
+/* ---------- 额度行：标签 + 百分比 / 水位条 / 倒计时 · 绝对时间 ----------
+ * 头部与 meta 以 display: contents 摊平进行网格，倒计时得以落到水位条下方。
+ * 三列：倒计时宽度 | 弹性 | 百分比宽度；无倒计时时第一列收为 0。 */
+
+.quotaRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  row-gap: 7px;
+  min-width: 0;
+  transition:
+    opacity var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    filter var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+
+  /* 水位条（或包着它的 role=meter 容器）独占第二行 */
+  > :not(.quotaRowHeader) {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    align-self: center;
+  }
+}
+
+.quotaRowHeader,
+.quotaMeta {
+  display: contents;
 }
 
 .quotaModel {
+  grid-row: 1;
+  grid-column: 1 / 3;
   min-width: 0;
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
   @include text-ellipsis;
 }
 
-/* 遥测：mono + 等宽数字，刷新时数字不跳位 */
-.quotaMeta {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 7px;
-  flex-shrink: 0;
-  font-family: $font-mono;
-  font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
-}
-
-/* 百分比穿墨色而非填充色 —— 文字不承担状态编码，颜色留给水位条 */
+/* 遥测数字等宽，刷新时不跳位；百分比穿墨色 —— 颜色留给水位条 */
 .quotaPercent {
+  grid-row: 1;
+  grid-column: 3;
+  padding-left: 10px;
+  font-size: 14px;
   font-weight: 650;
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .quotaReset {
-  color: var(--text-quaternary);
+  grid-row: 3;
+  grid-column: 2 / -1;
+  min-width: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  @include text-ellipsis;
 }
 
-/* Countdown beside the absolute reset time. The separator is a pseudo-element
-   so the two spans stay independently styleable (the relative half turns
-   warning-coloured when this is the row that recovers first). */
+/* 倒计时：行内领衔，分隔点挂在其后；行外（细节列 chip）沿用前置分隔点 */
 .quotaResetRelative {
   color: var(--text-tertiary);
 
@@ -71,24 +160,46 @@
   }
 }
 
-.quotaResetRelativeSoon {
+.quotaRow .quotaResetRelative {
+  grid-row: 3;
+  grid-column: 1;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+
+  &::before {
+    content: none;
+  }
+
+  &::after {
+    content: '·';
+    margin: 0 5px;
+    color: var(--text-quaternary);
+  }
+}
+
+.quotaResetRelativeSoon,
+.quotaRow .quotaResetRelativeSoon {
   color: var(--warning-text);
   font-weight: 600;
 }
 
 .quotaAmount {
-  font-family: $font-mono;
   font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
 }
 
+.quotaRow .quotaAmount {
+  grid-row: 4;
+  grid-column: 1 / -1;
+  font-size: 12px;
+}
+
 .quotaMessage {
-  font-family: $font-mono;
-  font-size: 11.5px;
+  font-size: 12.5px;
   line-height: 1.5;
   color: var(--text-tertiary);
-  text-align: center;
-  padding: 6px 4px;
 }
 
 /* ---------- 水位条（QuotaMeter）----------
@@ -96,9 +207,9 @@
  * percent === null 时宽度为 0 —— 未知不着色。 */
 
 .quotaBar {
-  height: 6px;
+  height: 5px;
   border-radius: $radius-full;
-  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 9%, transparent);
   overflow: hidden;
 }
 
@@ -107,7 +218,7 @@
   border-radius: $radius-full;
   /* 刷新时平滑重定向到新水位（可中断） */
   transition: width 360ms var(--ease-out-strong, ease);
-  /* 数据到达是本页的高潮时刻：水位逐行铺开（每行 40ms 级差）。
+  /* 数据到达是本页的高潮时刻：水位逐列铺开（每列 40ms 级差）。
    * 走 scaleX 而非 width，避免与上面的 width 过渡互相抢夺同一属性。 */
   transform-origin: left center;
   animation: quota-meter-fill 480ms var(--ease-out-strong, ease-out) both;
@@ -132,58 +243,69 @@
   background: var(--viz-failure);
 }
 
-/* ---------- Antigravity 分组 ---------- */
+/* ---------- Antigravity / 插件分组：组标题独占一行，桶沿用父级列轨道 ---------- */
 
 .antigravityQuotaGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--window-min, 168px), 1fr));
+  grid-template-columns: subgrid;
+  gap: 10px 32px;
+  align-items: start;
+  min-width: 0;
 
   & + & {
-    margin-top: 3px;
-    padding-top: 9px;
+    padding-top: 12px;
     border-top: 1px dashed color-mix(in srgb, var(--border-color) 80%, transparent);
   }
 }
 
 .antigravityQuotaGroupHeader {
+  grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: baseline;
+  gap: 8px;
   min-width: 0;
 }
 
 .antigravityQuotaGroupTitle {
-  font-family: $font-mono;
-  font-size: 10px;
+  flex-shrink: 0;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-tertiary);
 }
 
 .antigravityQuotaGroupDescription {
-  font-size: 11px;
-  line-height: 1.4;
+  min-width: 0;
+  font-size: 11.5px;
   color: var(--text-quaternary);
+  @include text-ellipsis;
 }
 
-@include mobile {
-  .quotaRowHeader {
-    flex-direction: column;
-    align-items: flex-start;
+/* ---------- 额度耗尽 ----------
+ * 行上的 data-exhausted 由 QuotaAccountRow 写入。其余窗口降亮度并去饱和，
+ * 耗尽的那条（约束来源，QuotaMeter 标 data-depleted）保持原亮度。 */
+
+[data-exhausted] .listWindows {
+  .quotaRow,
+  .quotaMessage,
+  .antigravityQuotaGroupHeader {
+    opacity: 0.4;
+    filter: grayscale(1);
   }
 
-  .quotaModel {
-    width: 100%;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-    overflow-wrap: anywhere;
+  .quotaRow:has([data-depleted]) {
+    opacity: 1;
+    filter: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .quotaRow {
+    transition: none;
+  }
+
   .quotaBarFill {
     transition: none;
     animation: none;

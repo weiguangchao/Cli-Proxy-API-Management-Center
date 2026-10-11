@@ -12,7 +12,7 @@ import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import type { QuotaBodyProps } from '../../types';
 
-export function KimiQuotaBody({ quota, classes }: QuotaBodyProps<KimiQuotaState>) {
+export function KimiQuotaBody({ quota, classes, layout }: QuotaBodyProps<KimiQuotaState>) {
   const { t, i18n } = useTranslation();
   // Ahead of the early return below — hooks cannot be conditional.
   const now = useNow();
@@ -23,10 +23,11 @@ export function KimiQuotaBody({ quota, classes }: QuotaBodyProps<KimiQuotaState>
   const rows = quota.rows ?? [];
 
   if (rows.length === 0) {
-    return <div className={classes.quotaMessage}>{t('kimi_quota.empty_data')}</div>;
+    const empty = <div className={classes.quotaMessage}>{t('kimi_quota.empty_data')}</div>;
+    return layout ? layout({ plan: null, details: null, windows: empty }) : empty;
   }
 
-  return (
+  const windowRows = (
     <>
       {rows.map((row, index) => {
         const limit = row.limit;
@@ -70,4 +71,6 @@ export function KimiQuotaBody({ quota, classes }: QuotaBodyProps<KimiQuotaState>
       })}
     </>
   );
+
+  return layout ? layout({ plan: null, details: null, windows: windowRows }) : windowRows;
 }
