@@ -1,5 +1,5 @@
 /**
- * 额度页纯逻辑：文件归类、tab 过滤、计数、分页。
+ * 额度页纯逻辑：文件归类、tab 过滤、排序、分组、计数、分页。
  * React-free —— 由 tests/quotaPageLogic.test.ts 直接消费。
  */
 
@@ -114,6 +114,36 @@ export function sortQuotaEntries(
       return a.atMs - b.atMs || a.index - b.index;
     })
     .map((decorated) => decorated.entry);
+}
+
+export interface QuotaEntryGroup {
+  /** Null for the flat list, which carries no provider heading. */
+  type: QuotaProviderType | null;
+  entries: QuotaFileEntry[];
+}
+
+/**
+ * Split the list under provider headings.
+ *
+ * Grouping only holds in the default order, where classifyQuotaFiles already
+ * keeps each provider contiguous. "Soonest recovery" interleaves providers on
+ * purpose, and regrouping it would either fragment the headings or quietly
+ * undo the ordering the user asked for — so that mode stays one flat list.
+ */
+export function groupQuotaEntries(
+  entries: QuotaFileEntry[],
+  mode: QuotaSortMode
+): QuotaEntryGroup[] {
+  if (entries.length === 0) return [];
+  if (mode !== 'default') return [{ type: null, entries: [...entries] }];
+
+  const groups: QuotaEntryGroup[] = [];
+  for (const entry of entries) {
+    const last = groups[groups.length - 1];
+    if (last && last.type === entry.type) last.entries.push(entry);
+    else groups.push({ type: entry.type, entries: [entry] });
+  }
+  return groups;
 }
 
 export function buildTabCounts(entries: QuotaFileEntry[]): Record<string, number> {

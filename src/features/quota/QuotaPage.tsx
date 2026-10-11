@@ -1,5 +1,5 @@
 /**
- * 额度查询页：提供商 tabs + 统一卡网格。
+ * 额度查询页：提供商 tabs + 按提供商分组的额度列表。
  *
  * 保留的行为契约（重设计不改）：
  * - 现有提供商保持点击加载；Devin 首次可见时主动查询一次，不轮询；
@@ -23,8 +23,9 @@ import { useAuthStore, useQuotaStore, useThemeStore } from '@/stores';
 import type { AuthFileItem, ResolvedTheme } from '@/types';
 import { getQuotaCacheKey } from '@/utils/quota/identity';
 import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
+import { getTypeLabel } from '@/features/authFiles/constants';
 import { QuotaHeader } from './components/QuotaHeader';
-import { QuotaCard } from './components/QuotaCard';
+import { QuotaAccountRow } from './components/QuotaAccountRow';
 import { QuotaTimeline } from './components/QuotaTimeline';
 import {
   CARD_ENTRANCE_BUDGET_MS,
@@ -40,6 +41,7 @@ import {
   classifyQuotaFiles,
   filterEntriesByTab,
   filterEntriesBySearch,
+  groupQuotaEntries,
   paginate,
   sortQuotaEntries,
   type QuotaFileEntry,
@@ -54,7 +56,7 @@ import { readQuotaUiState, writeQuotaUiState } from './uiState';
 import styles from './QuotaPage.module.scss';
 
 const TAB_IDS: string[] = ['all', ...QUOTA_TAB_ORDER];
-const SKELETON_CARD_COUNT = 6;
+const SKELETON_ROW_COUNT = 6;
 
 /**
  * Existing providers display filenames; Devin's card and timeline share an
@@ -178,6 +180,8 @@ export function QuotaPage() {
     () => filterEntriesBySearch(filterEntriesByTab(entries, tab), search),
     [entries, tab, search]
   );
+  // 分组标题的计数跟随搜索结果，而不是只数当前页
+  const filteredCounts = useMemo(() => buildTabCounts(filteredEntries), [filteredEntries]);
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
     setPage(1);
@@ -197,6 +201,7 @@ export function QuotaPage() {
     () => paginate(sortedEntries, page, QUOTA_PAGE_SIZE),
     [sortedEntries, page]
   );
+  const pageGroups = useMemo(() => groupQuotaEntries(pageItems, sortMode), [pageItems, sortMode]);
 
   const handleTabChange = useCallback((next: string) => {
     setTab(next as QuotaTabId);
@@ -301,9 +306,9 @@ export function QuotaPage() {
 
   const canUseActions = !disableControls && !loading && filesGeneration === sessionGeneration;
 
-  /* ---------- 首屏卡片一次性级联入场 ----------
-   * 首批数据渲染后立即翻转 cardsAnimated；已挂载的卡片在挂载时捕获过自己的
-   * 延迟（QuotaCard 内 useState 初始化），后续切 tab/翻页/刷新新挂载的卡片
+  /* ---------- 首屏行一次性级联入场 ----------
+   * 首批数据渲染后立即翻转 cardsAnimated；已挂载的行在挂载时捕获过自己的
+   * 延迟（QuotaAccountRow 内 useState 初始化），后续切 tab/翻页/刷新新挂载的行
    * 拿到 null —— 不重播。 */
 
   const [cardsAnimated, setCardsAnimated] = useState(false);
@@ -391,9 +396,9 @@ export function QuotaPage() {
         )}
 
         {loading ? (
-          <div className={styles.grid} aria-hidden="true">
-            {Array.from({ length: SKELETON_CARD_COUNT }, (_, index) => (
-              <Skeleton key={index} height={168} rounded={14} />
+          <div className={styles.skeletonList} aria-hidden="true">
+            {Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => (
+              <Skeleton key={index} height={64} rounded={10} />
             ))}
           </div>
         ) : isEmpty ? (
@@ -425,20 +430,38 @@ export function QuotaPage() {
             }
           />
         ) : (
-          <div className={styles.grid}>
-            {pageItems.map((entry, index) => (
-              <QuotaCard
-                key={`${entry.type}:${getQuotaCacheKey(entry.file)}`}
-                entry={entry}
-                quota={getQuota(entry)}
-                resolvedTheme={resolvedTheme}
-                canRefresh={canUseActions && !entry.file.disabled}
-                resetting={resettingQuotaName === getQuotaCacheKey(entry.file)}
-                entranceDelayMs={cardEntranceDelay(index)}
-                onRefresh={() => void refreshQuota(entry.file, QUOTA_ADAPTERS[entry.type])}
-                onReset={() => resetQuota(entry.file, QUOTA_ADAPTERS[entry.type])}
-              />
-            ))}
+          <div className={styles.list}>
+            {pageGroups.map((group) => {
+              const groupLabel = group.type ? getTypeLabel(t, group.type) : null;
+              return (
+                <section
+                  key={group.type ?? 'flat'}
+                  className={styles.group}
+                  aria-label={groupLabel ?? undefined}
+                >
+                  {group.type && (
+                    <h2 className={styles.groupHeader}>
+                      <span>{groupLabel}</span>
+                      <span className={styles.groupCount}>{filteredCounts[group.type]}</span>
+                    </h2>
+                  )}
+                  {group.entries.map((entry) => (
+                    <QuotaAccountRow
+                      key={`${entry.type}:${getQuotaCacheKey(entry.file)}`}
+                      entry={entry}
+                      quota={getQuota(entry)}
+                      resolvedTheme={resolvedTheme}
+                      showProviderIcon={group.type === null || entry.type === 'plugin'}
+                      canRefresh={canUseActions && !entry.file.disabled}
+                      resetting={resettingQuotaName === getQuotaCacheKey(entry.file)}
+                      entranceDelayMs={cardEntranceDelay(pageItems.indexOf(entry))}
+                      onRefresh={() => void refreshQuota(entry.file, QUOTA_ADAPTERS[entry.type])}
+                      onReset={() => resetQuota(entry.file, QUOTA_ADAPTERS[entry.type])}
+                    />
+                  ))}
+                </section>
+              );
+            })}
           </div>
         )}
 

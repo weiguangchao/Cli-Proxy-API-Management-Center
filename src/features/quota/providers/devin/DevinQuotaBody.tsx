@@ -7,31 +7,22 @@ import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import type { QuotaBodyProps } from '../../types';
 
-export function DevinQuotaBody({ quota, classes }: QuotaBodyProps<DevinQuotaState>) {
+export function DevinQuotaBody({ quota, classes, layout }: QuotaBodyProps<DevinQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
   const locale = i18n.resolvedLanguage;
   const urgentRow = pickUrgentRowId(collectQuotaRowInstants('devin', quota), now);
   const planEnd = buildResetDisplay(null, quota.planEndMs, now, locale);
 
-  return (
+  const planEndChip = planEnd && (
+    <span className={classes.codexPlanItem}>
+      <span className={classes.codexPlanLabel}>{t('devin_quota.plan_end')}</span>
+      <QuotaResetLabel display={planEnd} classes={classes} />
+    </span>
+  );
+
+  const windowRows = (
     <>
-      {(quota.plan || planEnd) && (
-        <div className={classes.codexPlan}>
-          {quota.plan && (
-            <span className={classes.codexPlanItem}>
-              <span className={classes.codexPlanLabel}>{t('devin_quota.plan_label')}</span>
-              <span className={classes.codexPlanValue}>{quota.plan}</span>
-            </span>
-          )}
-          {planEnd && (
-            <span className={classes.codexPlanItem}>
-              <span className={classes.codexPlanLabel}>{t('devin_quota.plan_end')}</span>
-              <QuotaResetLabel display={planEnd} classes={classes} />
-            </span>
-          )}
-        </div>
-      )}
       {quota.windows.map((window, index) => {
         const reset = buildResetDisplay(null, window.resetAtMs, now, locale);
         const soon = window.id === urgentRow;
@@ -65,6 +56,31 @@ export function DevinQuotaBody({ quota, classes }: QuotaBodyProps<DevinQuotaStat
           </div>
         );
       })}
+    </>
+  );
+
+  if (layout) {
+    return layout({
+      plan: quota.plan && <span className={classes.codexPlanValue}>{quota.plan}</span>,
+      details: planEndChip && <div className={classes.codexPlan}>{planEndChip}</div>,
+      windows: windowRows,
+    });
+  }
+
+  return (
+    <>
+      {(quota.plan || planEnd) && (
+        <div className={classes.codexPlan}>
+          {quota.plan && (
+            <span className={classes.codexPlanItem}>
+              <span className={classes.codexPlanLabel}>{t('devin_quota.plan_label')}</span>
+              <span className={classes.codexPlanValue}>{quota.plan}</span>
+            </span>
+          )}
+          {planEndChip}
+        </div>
+      )}
+      {windowRows}
     </>
   );
 }

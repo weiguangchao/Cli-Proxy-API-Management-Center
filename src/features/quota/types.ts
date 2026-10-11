@@ -7,6 +7,8 @@
  * 初始化时抛错并列出缺失清单，替代旧字符串 styleMap 的静默 class="undefined"。
  */
 
+import type { ReactNode } from 'react';
+
 export interface QuotaClassMap {
   // 额度行（五个提供商共用）
   quotaRow: string;
@@ -96,7 +98,24 @@ export function bindQuotaClasses(module: Record<string, string>, source: string)
   return bound;
 }
 
+/**
+ * 额度 body 的三个分区。列表宿主把它们拆进不同的列：
+ * plan 落在账户名下方、windows 横排成水位列、details 与动作同列。
+ */
+export interface QuotaBodySections {
+  /** 套餐值（无标签）：普通档为纯文本，premium / elite 档保留定稿徽章类。 */
+  plan: ReactNode;
+  /** 次要事实：续费日、余额、重置积分等。 */
+  details: ReactNode;
+  /** 用量窗口与空态提示。 */
+  windows: ReactNode;
+}
+
+export type QuotaBodyLayout = (sections: QuotaBodySections) => ReactNode;
+
 export interface QuotaBodyProps<TState> {
   quota: TState;
   classes: QuotaClassMap;
+  /** 分区编排；缺省时按原卡片顺序纵向堆叠（认证文件卡片宿主依赖这一输出）。 */
+  layout?: QuotaBodyLayout;
 }

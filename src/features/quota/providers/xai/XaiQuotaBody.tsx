@@ -72,7 +72,7 @@ const resolveXaiPlan = (
   return null;
 };
 
-export function XaiQuotaBody({ quota, classes }: QuotaBodyProps<XaiQuotaState>) {
+export function XaiQuotaBody({ quota, classes, layout }: QuotaBodyProps<XaiQuotaState>) {
   const { t, i18n } = useTranslation();
   // Ahead of the early return below — hooks cannot be conditional.
   const now = useNow();
@@ -86,25 +86,30 @@ export function XaiQuotaBody({ quota, classes }: QuotaBodyProps<XaiQuotaState>) 
   const billing = quota.billing;
 
   if (!billing) {
-    return <div className={classes.quotaMessage}>{t('xai_quota.empty_data')}</div>;
+    const empty = <div className={classes.quotaMessage}>{t('xai_quota.empty_data')}</div>;
+    return layout ? layout({ plan: null, details: null, windows: empty }) : empty;
   }
 
   if (billing.mode === 'paid-health') {
+    const paidPlanClass = billing.planLabel
+      ? planValueClass(billing.planTier, classes)
+      : classes.premiumPlanValue;
+    const paidPlanLabel = billing.planLabel ?? t('xai_quota.plan_paid');
+    const healthMessage = <div className={classes.quotaMessage}>{t('xai_quota.paid_health')}</div>;
+    if (layout) {
+      return layout({
+        plan: <span className={paidPlanClass}>{paidPlanLabel}</span>,
+        details: null,
+        windows: healthMessage,
+      });
+    }
     return (
       <>
         <div className={classes.codexPlan}>
           <span className={classes.codexPlanLabel}>{t('xai_quota.plan_label')}</span>
-          <span
-            className={
-              billing.planLabel
-                ? planValueClass(billing.planTier, classes)
-                : classes.premiumPlanValue
-            }
-          >
-            {billing.planLabel ?? t('xai_quota.plan_paid')}
-          </span>
+          <span className={paidPlanClass}>{paidPlanLabel}</span>
         </div>
-        <div className={classes.quotaMessage}>{t('xai_quota.paid_health')}</div>
+        {healthMessage}
       </>
     );
   }
@@ -168,112 +173,136 @@ export function XaiQuotaBody({ quota, classes }: QuotaBodyProps<XaiQuotaState>) 
     locale
   );
 
+  const planChip = subscriptionLabel && (
+    <span className={classes.codexPlanItem}>
+      <span className={classes.codexPlanLabel}>{t('xai_quota.plan_label')}</span>
+      <span className={subscriptionClass}>{subscriptionLabel}</span>
+    </span>
+  );
+  const resetsChip = headerReset && (
+    <span className={classes.codexPlanItem}>
+      <span className={classes.codexPlanLabel}>{t('xai_quota.resets_label')}</span>
+      <span className={classes.codexPlanValue}>{headerReset.absolute}</span>
+      {headerReset.relative && (
+        <span className={classes.quotaResetRelative}>{headerReset.relative}</span>
+      )}
+    </span>
+  );
+  const prepaidChip = typeof billing.prepaidBalanceCents === 'number' &&
+    billing.prepaidBalanceCents > 0 && (
+      <div className={classes.codexPlan}>
+        <span className={classes.codexPlanLabel}>{t('xai_quota.prepaid')}</span>
+        <span className={classes.quotaAmount}>
+          {formatUsdFromCents(billing.prepaidBalanceCents)}
+        </span>
+      </div>
+    );
+  const weeklyRow = hasWeeklyData && (
+    <div
+      className={classes.quotaRow}
+      title={weeklySoon ? t('quota_management.soonest_row_hint') : undefined}
+    >
+      <div className={classes.quotaRowHeader}>
+        <span className={classes.quotaModel}>{t('xai_quota.weekly_limit')}</span>
+        <div className={classes.quotaMeta}>
+          <span className={classes.quotaPercent}>
+            {weeklyUsed === null
+              ? t('xai_quota.usage_unavailable')
+              : t('xai_quota.used_percent', { percent: formatXaiPercent(weeklyUsed) })}
+          </span>
+          {weeklyResetDisplay && (
+            <QuotaResetLabel display={weeklyResetDisplay} classes={classes} soon={weeklySoon} />
+          )}
+        </div>
+      </div>
+      {weeklyRemaining !== null && (
+        <QuotaMeter percent={weeklyRemaining} classes={classes} index={0} />
+      )}
+    </div>
+  );
+  const productUsage = billing.productUsage.length > 0 && (
+    <div className={classes.quotaMessage}>
+      <div>{t('xai_quota.usage_breakdown')}</div>
+      {billing.productUsage.map((item) => (
+        <div key={`product-${item.product}`}>
+          {t('xai_quota.product_usage', { product: item.product })}
+          {': '}
+          {item.usagePercent === null
+            ? t('xai_quota.usage_unavailable')
+            : formatXaiPercent(Math.max(0, Math.min(100, item.usagePercent)))}
+        </div>
+      ))}
+    </div>
+  );
+  const payAsYouGo =
+    onDemandCap > 0 ? (
+      <div className={classes.quotaRow}>
+        <div className={classes.quotaRowHeader}>
+          <span className={classes.quotaModel}>{t('xai_quota.pay_as_you_go_label')}</span>
+          <div className={classes.quotaMeta}>
+            <span className={classes.quotaPercent}>{onDemandPercentLabel}</span>
+            <span className={classes.quotaAmount}>{onDemandAmountLabel}</span>
+          </div>
+        </div>
+        <QuotaMeter percent={onDemandRemaining} classes={classes} index={1} />
+      </div>
+    ) : (
+      <div className={classes.codexPlan}>
+        <span className={classes.codexPlanLabel}>{t('xai_quota.pay_as_you_go_label')}</span>
+        <span className={classes.codexPlanValue}>{t('xai_quota.pay_as_you_go_disabled')}</span>
+      </div>
+    );
+  const monthlyRow = hasMonthlyData && (
+    <div className={classes.quotaRow}>
+      <div className={classes.quotaRowHeader}>
+        <span className={classes.quotaModel}>{t('xai_quota.monthly_credits')}</span>
+        <div className={classes.quotaMeta}>
+          <span className={classes.quotaPercent}>{percentLabel}</span>
+          <span className={classes.quotaAmount}>{amountLabel}</span>
+          {monthlyResetDisplay && (
+            <QuotaResetLabel display={monthlyResetDisplay} classes={classes} />
+          )}
+        </div>
+      </div>
+      <QuotaMeter percent={remaining} classes={classes} index={2} />
+    </div>
+  );
+
+  if (layout) {
+    // A disabled pay-as-you-go line is a fact, not a meter — it sits with the details.
+    return layout({
+      plan: subscriptionLabel && <span className={subscriptionClass}>{subscriptionLabel}</span>,
+      details: (
+        <>
+          {resetsChip && <div className={classes.codexPlan}>{resetsChip}</div>}
+          {prepaidChip}
+          {onDemandCap > 0 ? null : payAsYouGo}
+        </>
+      ),
+      windows: (
+        <>
+          {weeklyRow}
+          {productUsage}
+          {onDemandCap > 0 ? payAsYouGo : null}
+          {monthlyRow}
+        </>
+      ),
+    });
+  }
+
   return (
     <>
       {(subscriptionLabel || headerReset) && (
         <div className={classes.codexPlan}>
-          {subscriptionLabel && (
-            <span className={classes.codexPlanItem}>
-              <span className={classes.codexPlanLabel}>{t('xai_quota.plan_label')}</span>
-              <span className={subscriptionClass}>{subscriptionLabel}</span>
-            </span>
-          )}
-          {headerReset && (
-            <span className={classes.codexPlanItem}>
-              <span className={classes.codexPlanLabel}>{t('xai_quota.resets_label')}</span>
-              <span className={classes.codexPlanValue}>{headerReset.absolute}</span>
-              {headerReset.relative && (
-                <span className={classes.quotaResetRelative}>{headerReset.relative}</span>
-              )}
-            </span>
-          )}
+          {planChip}
+          {resetsChip}
         </div>
       )}
-      {typeof billing.prepaidBalanceCents === 'number' && billing.prepaidBalanceCents > 0 && (
-        <div className={classes.codexPlan}>
-          <span className={classes.codexPlanLabel}>{t('xai_quota.prepaid')}</span>
-          <span className={classes.quotaAmount}>
-            {formatUsdFromCents(billing.prepaidBalanceCents)}
-          </span>
-        </div>
-      )}
-      {hasWeeklyData && (
-        <div
-          className={classes.quotaRow}
-          title={weeklySoon ? t('quota_management.soonest_row_hint') : undefined}
-        >
-          <div className={classes.quotaRowHeader}>
-            <span className={classes.quotaModel}>{t('xai_quota.weekly_limit')}</span>
-            <div className={classes.quotaMeta}>
-              <span className={classes.quotaPercent}>
-                {weeklyUsed === null
-                  ? t('xai_quota.usage_unavailable')
-                  : t('xai_quota.used_percent', { percent: formatXaiPercent(weeklyUsed) })}
-              </span>
-              {weeklyResetDisplay && (
-                <QuotaResetLabel display={weeklyResetDisplay} classes={classes} soon={weeklySoon} />
-              )}
-            </div>
-          </div>
-          {weeklyRemaining !== null && (
-            <QuotaMeter percent={weeklyRemaining} classes={classes} index={0} />
-          )}
-        </div>
-      )}
-      {billing.productUsage.length > 0 && (
-        <div className={classes.quotaMessage}>
-          <div>{t('xai_quota.usage_breakdown')}</div>
-          {billing.productUsage.map((item) => (
-            <div key={`product-${item.product}`}>
-              {t('xai_quota.product_usage', { product: item.product })}
-              {': '}
-              {item.usagePercent === null
-                ? t('xai_quota.usage_unavailable')
-                : formatXaiPercent(Math.max(0, Math.min(100, item.usagePercent)))}
-            </div>
-          ))}
-        </div>
-      )}
-      {onDemandCap > 0 ? (
-        <div className={classes.quotaRow}>
-          <div className={classes.quotaRowHeader}>
-            <span className={classes.quotaModel}>{t('xai_quota.pay_as_you_go_label')}</span>
-            <div className={classes.quotaMeta}>
-              <span className={classes.quotaPercent}>{onDemandPercentLabel}</span>
-              <span className={classes.quotaAmount}>{onDemandAmountLabel}</span>
-            </div>
-          </div>
-          <QuotaMeter
-            percent={onDemandRemaining}
-            classes={classes}
-            index={1}
-          />
-        </div>
-      ) : (
-        <div className={classes.codexPlan}>
-          <span className={classes.codexPlanLabel}>{t('xai_quota.pay_as_you_go_label')}</span>
-          <span className={classes.codexPlanValue}>{t('xai_quota.pay_as_you_go_disabled')}</span>
-        </div>
-      )}
-      {hasMonthlyData && (
-        <div className={classes.quotaRow}>
-          <div className={classes.quotaRowHeader}>
-            <span className={classes.quotaModel}>{t('xai_quota.monthly_credits')}</span>
-            <div className={classes.quotaMeta}>
-              <span className={classes.quotaPercent}>{percentLabel}</span>
-              <span className={classes.quotaAmount}>{amountLabel}</span>
-              {monthlyResetDisplay && (
-                <QuotaResetLabel display={monthlyResetDisplay} classes={classes} />
-              )}
-            </div>
-          </div>
-          <QuotaMeter
-            percent={remaining}
-            classes={classes}
-            index={2}
-          />
-        </div>
-      )}
+      {prepaidChip}
+      {weeklyRow}
+      {productUsage}
+      {payAsYouGo}
+      {monthlyRow}
     </>
   );
 }

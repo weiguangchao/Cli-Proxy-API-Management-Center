@@ -183,15 +183,50 @@
   overflow-wrap: anywhere;
 }
 
-/* ---------- 卡片网格 ----------
- * 列宽由 CSS 决定（不再用 JS 测量）：额度卡承载水位条，取 340px 下限，
- * 与认证文件页配额模式（.gridQuota）同一档。 */
+/* ---------- 额度列表 ----------
+ * 行无卡片底，按提供商分组；列宽在此统一下发（--quota-row-columns），
+ * 各行的窗口列因此上下对齐。行内的窄屏折行由容器查询 quota-list 驱动。 */
 
-.grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
-  align-items: stretch;
+.list {
+  --quota-row-columns: minmax(150px, 1fr) minmax(0, 3.4fr) minmax(210px, 1.2fr);
+
+  container: quota-list / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.groupCount {
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.skeletonList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* ---------- 分页 ---------- */

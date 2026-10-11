@@ -1,0 +1,381 @@
+@use '../../../styles/mixins' as *;
+
+/* ============================================================
+ * 额度列表行 —— 无卡片底，行间一条发丝分隔线。
+ * 列宽由列表容器的 --quota-row-columns 统一下发，跨行同列对齐；
+ * 窄容器（容器查询 quota-list）下折成：账户 + 动作 / 窗口 / 细节。
+ * ============================================================ */
+
+.row {
+  display: grid;
+  grid-template-columns: var(
+    --quota-row-columns,
+    minmax(150px, 1fr) minmax(0, 3.4fr) minmax(210px, 1.2fr)
+  );
+  grid-template-areas:
+    'identity windows details'
+    'identity windows actions';
+  grid-template-rows: auto 1fr;
+  gap: 10px 36px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-color);
+  min-width: 0;
+}
+
+/* 首次数据到达时的一次性级联入场；切 tab / 翻页 / 刷新不重播 */
+.rowEnter {
+  animation: quota-row-in 0.4s var(--ease-out-strong, ease-out) both;
+  animation-delay: var(--row-delay, 0s);
+}
+
+@keyframes quota-row-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+}
+
+/* ---------- 账户列：（可选）图标 + mono 账户名 / 套餐 · 恢复倒计时 ---------- */
+
+.identity {
+  grid-area: identity;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.iconWrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-top: -2px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--bg-tertiary) 60%, transparent);
+}
+
+.icon {
+  display: block;
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
+.iconFallback {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.identityText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.name {
+  min-width: 0;
+  font-family: $font-mono;
+  font-size: 14.5px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+  @include text-ellipsis;
+}
+
+.subline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.plan {
+  min-width: 0;
+  color: var(--text-tertiary);
+}
+
+.recovery {
+  color: var(--viz-failure);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.plan + .recovery::before {
+  content: '·';
+  margin: 0 6px;
+  color: var(--text-quaternary);
+  font-weight: 400;
+}
+
+.name,
+.plan {
+  transition: opacity var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+}
+
+/* 额度耗尽：账户名与套餐降亮度；恢复倒计时、细节与动作保持可读 */
+.row[data-exhausted] {
+  .name,
+  .plan {
+    opacity: 0.45;
+  }
+}
+
+/* ---------- 窗口 / 细节 / 动作 ---------- */
+
+.windows {
+  grid-area: windows;
+}
+
+.details {
+  grid-area: details;
+}
+
+.actions {
+  grid-area: actions;
+  align-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  margin-left: -8px;
+}
+
+/* 安静的文字动作：hover 才显色块 */
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform var(--dur-press, 160ms) var(--ease-out-strong, ease-out),
+    background-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 1px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .action:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--bg-tertiary) 70%, transparent);
+    color: var(--text-primary);
+  }
+}
+
+.spinning {
+  animation: quota-row-spin 0.8s linear infinite;
+}
+
+@keyframes quota-row-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- idle：整个窗口列即点击加载的落点 ---------- */
+
+.idleBody {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border-color);
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition:
+    transform var(--dur-press, 160ms) var(--ease-out-strong, ease-out),
+    border-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .idleBody:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--primary-color) 35%, var(--border-color));
+    border-style: solid;
+    color: var(--text-secondary);
+  }
+}
+
+.idleGlyph {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.idleHint {
+  grid-column: 1 / -1;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+/* ---------- loading：幽灵窗口列 ---------- */
+
+/* 跨满窗口列并沿用其列轨道，幽灵列与真实窗口落在同一位置 */
+.skeleton {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--window-min, 168px), 1fr));
+  grid-template-columns: subgrid;
+  column-gap: 32px;
+}
+
+.skeletonWindow {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding-top: 3px;
+}
+
+/* 骨架：底色 + 一道 1.2s 匀速扫光（linear —— 环境性匀速运动的唯一例外） */
+.skeletonLabel,
+.skeletonTrack {
+  display: block;
+  border-radius: $radius-full;
+  background-color: color-mix(in srgb, var(--text-primary) 8%, transparent);
+  background-image: linear-gradient(
+    90deg,
+    transparent 20%,
+    color-mix(in srgb, var(--text-primary) 6%, transparent) 50%,
+    transparent 80%
+  );
+  background-repeat: no-repeat;
+  background-size: 220% 100%;
+  animation: quota-skeleton-sweep 1.2s linear infinite;
+}
+
+@keyframes quota-skeleton-sweep {
+  from {
+    background-position: -110% 0;
+  }
+  to {
+    background-position: 210% 0;
+  }
+}
+
+.skeletonLabel {
+  width: 55%;
+  height: 11px;
+}
+
+.skeletonTrack {
+  width: 100%;
+  height: 5px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- error ---------- */
+
+.errorStrip {
+  grid-column: 1 / -1;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--viz-failure) 32%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--viz-failure) 8%, transparent);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--viz-failure);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- 窄容器：账户 + 动作同排，窗口与细节各占整行 ---------- */
+
+@container quota-list (max-width: 820px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'identity actions'
+      'windows windows'
+      'details details';
+    grid-template-rows: auto;
+    gap: 14px 16px;
+    padding: 16px 0;
+  }
+
+  .actions {
+    align-self: start;
+    justify-content: flex-end;
+    margin: -5px -8px 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .name,
+  .plan,
+  .idleBody,
+  .action {
+    transition: none;
+  }
+
+  .idleBody:active:not(:disabled),
+  .action:active:not(:disabled) {
+    transform: none;
+  }
+
+  .rowEnter,
+  .skeletonLabel,
+  .skeletonTrack,
+  .spinning {
+    animation: none;
+  }
+}

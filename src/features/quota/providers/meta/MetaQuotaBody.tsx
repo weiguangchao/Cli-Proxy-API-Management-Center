@@ -8,7 +8,7 @@ import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import type { QuotaBodyProps } from '../../types';
 
-export function MetaQuotaBody({ quota, classes }: QuotaBodyProps<MetaQuotaState>) {
+export function MetaQuotaBody({ quota, classes, layout }: QuotaBodyProps<MetaQuotaState>) {
   const { t, i18n } = useTranslation();
   const now = useNow();
   const soonestRowId = useMemo(
@@ -16,25 +16,19 @@ export function MetaQuotaBody({ quota, classes }: QuotaBodyProps<MetaQuotaState>
     [quota, now]
   );
   const data = quota.data;
-  if (!data) return <div className={classes.quotaMessage}>{t('meta_quota.empty_data')}</div>;
+  if (!data) {
+    const empty = <div className={classes.quotaMessage}>{t('meta_quota.empty_data')}</div>;
+    return layout ? layout({ plan: null, details: null, windows: empty }) : empty;
+  }
 
-  return (
+  const subscriptionChip = data.isSubscriptionActive !== undefined && (
+    <span className={classes.codexPlanValue}>
+      {t(data.isSubscriptionActive ? 'meta_quota.active' : 'meta_quota.inactive')}
+    </span>
+  );
+
+  const windowRows = (
     <>
-      {(data.planName || data.isSubscriptionActive !== undefined) && (
-        <div className={classes.codexPlan}>
-          {data.planName && (
-            <span className={classes.codexPlanItem}>
-              <span className={classes.codexPlanLabel}>{t('meta_quota.plan')}</span>
-              <span className={classes.codexPlanValue}>{data.planName}</span>
-            </span>
-          )}
-          {data.isSubscriptionActive !== undefined && (
-            <span className={classes.codexPlanValue}>
-              {t(data.isSubscriptionActive ? 'meta_quota.active' : 'meta_quota.inactive')}
-            </span>
-          )}
-        </div>
-      )}
       {data.windows.every((window) => window.usedPercent === null) && (
         <div className={classes.quotaMessage}>{t('meta_quota.empty_data')}</div>
       )}
@@ -78,6 +72,31 @@ export function MetaQuotaBody({ quota, classes }: QuotaBodyProps<MetaQuotaState>
           </div>
         );
       })}
+    </>
+  );
+
+  if (layout) {
+    return layout({
+      plan: data.planName && <span className={classes.codexPlanValue}>{data.planName}</span>,
+      details: subscriptionChip && <div className={classes.codexPlan}>{subscriptionChip}</div>,
+      windows: windowRows,
+    });
+  }
+
+  return (
+    <>
+      {(data.planName || data.isSubscriptionActive !== undefined) && (
+        <div className={classes.codexPlan}>
+          {data.planName && (
+            <span className={classes.codexPlanItem}>
+              <span className={classes.codexPlanLabel}>{t('meta_quota.plan')}</span>
+              <span className={classes.codexPlanValue}>{data.planName}</span>
+            </span>
+          )}
+          {subscriptionChip}
+        </div>
+      )}
+      {windowRows}
     </>
   );
 }

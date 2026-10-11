@@ -36,7 +36,8 @@ export function QuotaMeter({ percent, classes, index }: QuotaMeterProps) {
   }
 
   return (
-    <div className={classes.quotaBar}>
+    // data-depleted lets the list keep the limit that ran dry legible while it dims the rest.
+    <div className={classes.quotaBar} data-depleted={normalized === 0 ? '' : undefined}>
       <div className={`${classes.quotaBarFill} ${fillClass}`} style={style} />
     </div>
   );
