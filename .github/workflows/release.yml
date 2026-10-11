@@ -2,11 +2,22 @@ name: Build and Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+  workflow_dispatch:
+
+# Publish one run at a time; a newer pending run replaces an older pending one.
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+env:
+  # Single rolling release: every main commit replaces its management.html asset.
+  RELEASE_TAG: latest
 
 jobs:
   build-and-release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     permissions:
@@ -15,9 +26,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -32,10 +40,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build all-in-one HTML
-        run: bun run build
-        env:
-          VERSION: ${{ github.ref_name }}
+      - name: Set build version
+        run: echo "VERSION=main-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      - name: Verify and build all-in-one HTML
+        run: bun run verify
 
       - name: Prepare release assets
         run: |
@@ -46,23 +55,42 @@ jobs:
       - name: Generate release notes
         run: |
           set -euo pipefail
-          current_tag="${GITHUB_REF_NAME}"
-          previous_tag="$(git tag --list 'v*' --sort=-v:refname | grep -v "^${current_tag}$" | head -n 1 || true)"
-          if [ -n "${previous_tag}" ]; then
-            range="${previous_tag}..${current_tag}"
-          else
-            range="${current_tag}"
+          {
+            echo "Rolling build of \`management.html\` from \`main\`."
+            echo
+            echo "- Version: \`${VERSION}\`"
+            echo "- Commit: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
+            git log -1 --pretty=format:"- Message: %s"
+            echo
+          } > release-notes.md
+
+      - name: Publish rolling release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Never roll the release back to an older commit (e.g. a re-run of an old workflow).
+          main_head="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [ "${main_head}" != "${GITHUB_SHA}" ]; then
+            echo "::notice::main moved to ${main_head}; skipping publish for ${GITHUB_SHA}"
+            exit 0
           fi
 
-          : > release-notes.md
-          git log --pretty=format:"- %h %s" "${range}" >> release-notes.md
+          title="management.html (${VERSION})"
+          git push --force origin "${GITHUB_SHA}:refs/tags/${RELEASE_TAG}"
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: dist/management.html
-          body_path: release-notes.md
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" dist/management.html --clobber
+            gh release edit "${RELEASE_TAG}" \
+              --title "${title}" \
+              --notes-file release-notes.md \
+              --draft=false \
+              --prerelease=false \
+              --latest
+          else
+            gh release create "${RELEASE_TAG}" dist/management.html \
+              --title "${title}" \
+              --notes-file release-notes.md \
+              --latest
+          fi
