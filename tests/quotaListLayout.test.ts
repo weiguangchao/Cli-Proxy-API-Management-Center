@@ -11,6 +11,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import i18n from '@/i18n';
 import { QuotaMeter } from '@/features/quota/components/QuotaMeter';
 import { groupQuotaEntries, type QuotaFileEntry } from '@/features/quota/logic';
+import { AntigravityQuotaBody } from '@/features/quota/providers/antigravity/AntigravityQuotaBody';
+import { sortAntigravityQuotaGroups } from '@/features/quota/providers/antigravity/data';
 import { ClaudeQuotaBody } from '@/features/quota/providers/claude/ClaudeQuotaBody';
 import { CodexQuotaBody } from '@/features/quota/providers/codex/CodexQuotaBody';
 import { KimiQuotaBody } from '@/features/quota/providers/kimi/KimiQuotaBody';
@@ -20,6 +22,7 @@ import { maskEmail } from '@/utils/format';
 import { getQuotaAccountLabel } from '@/utils/quota/identity';
 import { DAY_MS, HOUR_MS } from '@/utils/time/durations';
 import type {
+  AntigravityQuotaGroup,
   AuthFileItem,
   ClaudeQuotaState,
   CodexQuotaState,
@@ -190,6 +193,44 @@ describe('provider body sections', () => {
     expect(slotOf(markup, 'windows')).toContain('quotaMessage');
   });
 
+  test('Antigravity puts Gemini first and tags each group with its bucket count', () => {
+    const group = (label: string, windows: string[]): AntigravityQuotaGroup => ({
+      id: label,
+      label,
+      buckets: windows.map((window) => ({
+        id: `${label}-${window}`,
+        label: `${window} limit`,
+        window,
+        remainingFraction: 0.5,
+      })),
+    });
+    const groups = sortAntigravityQuotaGroups([
+      group('Claude and GPT Models', ['5h', 'weekly']),
+      group('Image Models', ['weekly']),
+      group('Gemini Models', ['weekly']),
+    ]);
+    expect(groups.map(({ label }) => label)).toEqual([
+      'Gemini Models',
+      'Claude and GPT Models',
+      'Image Models',
+    ]);
+
+    const markup = renderToStaticMarkup(
+      createElement(AntigravityQuotaBody, {
+        quota: { status: 'success', groups },
+        classes,
+        layout: slots,
+      })
+    );
+    const windows = slotOf(markup, 'windows');
+    expect(windows.indexOf('Gemini models')).toBeLessThan(windows.indexOf('Claude and GPT models'));
+    expect(windows.match(/data-buckets="\d+"/g)).toEqual([
+      'data-buckets="1"',
+      'data-buckets="2"',
+      'data-buckets="1"',
+    ]);
+  });
+
   test('Kimi has windows only, empty state included', () => {
     const empty: KimiQuotaState = { status: 'success', rows: [] };
     const markup = renderToStaticMarkup(
@@ -250,6 +291,17 @@ describe('QuotaAccountRow contract', () => {
     // Actions only exist once a fetch was attempted, so the idle row has nothing to its right.
     expect(row).toContain("{status !== 'idle' && (");
     expect(css).toMatch(/\.row\[data-idle\] \.windows \{\s*grid-column-end: -1;/);
+  });
+
+  test('spans Antigravity groups side by side only when the windows column fits them', async () => {
+    const css = await bodyCss();
+    expect(css).toContain('container: quota-windows / inline-size;');
+    expect(css).toMatch(
+      /@container quota-windows \(min-width: #\{\$n \* \$window-min \+ \(\$n - 1\) \* \$window-gap\}\)/
+    );
+    expect(css).toMatch(/\[data-buckets='#\{\$n\}'\] \{\s*grid-column: span \$n;/);
+    // Side-by-side groups would misalign under the stacked-group divider.
+    expect(css).toContain('&:not([data-buckets]) + &:not([data-buckets])');
   });
 
   test('dims exhausted rows but keeps the depleted limit at full brightness', async () => {

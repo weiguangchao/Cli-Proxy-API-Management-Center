@@ -38,6 +38,19 @@ export type AntigravityQuotaData = {
   serverTimeOffsetMs: number | null;
 };
 
+const getAntigravityGroupOrder = (group: AntigravityQuotaGroup): number => {
+  const label = group.label.toLowerCase();
+  if (label.includes('gemini')) return 0;
+  if (label.includes('claude') || label.includes('gpt')) return 1;
+  return 2;
+};
+
+/** Gemini 模型组在前、Claude 和 GPT 模型组在后，其余组按上游顺序垫底（稳定排序）。 */
+export const sortAntigravityQuotaGroups = (
+  groups: AntigravityQuotaGroup[]
+): AntigravityQuotaGroup[] =>
+  [...groups].sort((a, b) => getAntigravityGroupOrder(a) - getAntigravityGroupOrder(b));
+
 const resolveAntigravityProjectId = async (file: AuthFileItem): Promise<string> => {
   const directProjectId = normalizeStringValue(file.project_id ?? file.projectId);
   if (directProjectId) return directProjectId;
@@ -169,7 +182,7 @@ const fetchAntigravityQuota = async (
         continue;
       }
 
-      const groups = buildAntigravityQuotaGroups(payload);
+      const groups = sortAntigravityQuotaGroups(buildAntigravityQuotaGroups(payload));
       if (groups.length === 0) {
         lastError = t('antigravity_quota.empty_models');
         continue;

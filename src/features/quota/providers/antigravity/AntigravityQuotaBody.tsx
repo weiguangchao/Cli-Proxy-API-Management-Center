@@ -169,7 +169,12 @@ export function AntigravityQuotaBody({
         );
 
         return (
-          <div key={group.id} className={classes.antigravityQuotaGroup}>
+          // data-buckets lets the list span only this group's tracks, so groups share one line.
+          <div
+            key={group.id}
+            className={classes.antigravityQuotaGroup}
+            data-buckets={group.buckets.length}
+          >
             <div className={classes.antigravityQuotaGroupHeader}>
               <span className={classes.antigravityQuotaGroupTitle}>{groupLabel}</span>
             </div>
