@@ -5,6 +5,8 @@
  * The bar does not merge them: one segment per account, in list order, filled
  * from that account's own 7-day window. Model windows such as Claude's
  * 7-day Fable are a different limit and never become this card.
+ * Antigravity has no account-wide week, so its card uses the Gemini group's
+ * weekly bucket.
  *
  * Pure: `nowMs` is passed in, and quota state is read structurally.
  */
@@ -54,6 +56,8 @@ interface Observation {
   resetAtMs: number | null;
   /** Week-scale bucket. Only Antigravity and plugin quotas need this. */
   weekly: boolean;
+  /** Antigravity model group, for example "Gemini Models". */
+  groupLabel?: string;
 }
 
 const WEEK_MIN_HOURS = 24 * 7 - 1;
@@ -180,15 +184,17 @@ function readKimiRows(quota: unknown): Observation[] {
 }
 
 function readBuckets(quota: unknown): Observation[] {
-  const groups = (quota as { groups?: { buckets?: unknown[] }[] }).groups;
+  const groups = (quota as { groups?: { label?: unknown; buckets?: unknown[] }[] }).groups;
   if (!Array.isArray(groups)) return [];
   return groups.flatMap((group) => {
+    const groupLabel = readString(group?.label);
     const buckets = Array.isArray(group?.buckets) ? group.buckets : [];
     return buckets.flatMap((value) => {
       if (!value || typeof value !== 'object') return [];
       const bucket = value as {
         id?: unknown;
         label?: unknown;
+        window?: unknown;
         remainingFraction?: unknown;
         resetAtMs?: unknown;
         periodHours?: unknown;
@@ -196,15 +202,22 @@ function readBuckets(quota: unknown): Observation[] {
       const id = readString(bucket.id);
       if (!id) return [];
       const fraction = finite(bucket.remainingFraction);
+      const windowName = readString(bucket.window);
+      const periodHours =
+        finite(bucket.periodHours) ??
+        (windowName && /^(weekly|week)$/i.test(windowName) ? 24 * 7 : null);
       return [
-        observation({
-          id,
-          label: readString(bucket.label),
-          remaining:
-            fraction === null ? null : Math.round(Math.min(1, Math.max(0, fraction)) * 100),
-          resetAtMs: finite(bucket.resetAtMs),
-          periodHours: finite(bucket.periodHours),
-        }),
+        {
+          ...observation({
+            id,
+            label: readString(bucket.label),
+            remaining:
+              fraction === null ? null : Math.round(Math.min(1, Math.max(0, fraction)) * 100),
+            resetAtMs: finite(bucket.resetAtMs),
+            periodHours,
+          }),
+          groupLabel,
+        },
       ];
     });
   });
@@ -294,12 +307,22 @@ function isSevenDay(provider: QuotaProviderType, window: Observation): boolean {
       return window.id === 'weekly';
     case 'kimi':
       return window.labelKey === 'kimi_quota.weekly_limit';
-    case 'antigravity':
     case 'plugin':
       return window.weekly && (window.id === 'weekly' || window.id === 'week');
+    case 'antigravity':
+      return isGeminiWeekly(window);
     default:
       return false;
   }
+}
+
+/** Antigravity has no account-wide week. The card uses the Gemini group's weekly bucket. */
+function isGeminiWeekly(window: Observation): boolean {
+  const group = (window.groupLabel ?? '').toLowerCase();
+  if (!group.includes('gemini')) return false;
+  if (window.weekly) return true;
+  const label = (window.label ?? '').toLowerCase();
+  return /\bweekly\b|\bweek\b/.test(label) && !label.includes('hour');
 }
 
 function pickSevenDay(
@@ -377,9 +400,12 @@ function summarizeProvider(
     accounts,
     window: {
       id: chosen.id,
-      label: chosen.label,
-      labelKey: chosen.labelKey,
-      labelParams: chosen.labelParams,
+      label: type === 'antigravity' ? undefined : chosen.label,
+      labelKey:
+        type === 'antigravity'
+          ? 'quota_management.summary_antigravity_gemini_weekly'
+          : chosen.labelKey,
+      labelParams: type === 'antigravity' ? undefined : chosen.labelParams,
       remainingPercent:
         known.length > 0 ? known.reduce((sum, remaining) => sum + remaining, 0) : null,
       capacityPercent: (known.length > 0 ? known.length : entries.length) * 100,

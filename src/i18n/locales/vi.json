@@ -1528,6 +1528,7 @@
     "summary_of": "/ {{capacity}}%",
     "summary_unloaded": "Chưa tải",
     "summary_loading": "Đang tải…",
+    "summary_antigravity_gemini_weekly": "Quota tuần của Gemini",
     "meta_loaded": "{{count}} đã tải",
     "meta_attention": "{{count}} cần chú ý",
     "empty_title": "Không có credential hỗ trợ quota",

@@ -122,6 +122,54 @@ describe('buildProviderSummaries', () => {
     });
   });
 
+  test('uses each Antigravity account Gemini weekly bucket, not the Claude group', () => {
+    const bucket = (id: string, label: string, remainingFraction: number, periodHours: number) => ({
+      id,
+      label,
+      remainingFraction,
+      periodHours,
+      resetAtMs: NOW + 3 * DAY_MS,
+    });
+    const summaries = buildProviderSummaries(
+      [entry('antigravity', 'a'), entry('antigravity', 'b')],
+      quotaFor({
+        a: {
+          status: 'success',
+          groups: [
+            {
+              label: 'Gemini Models',
+              buckets: [
+                bucket('gemini-5h', '5 hour limit', 0.1, 5),
+                bucket('gemini-week', 'Weekly limit', 0.24, 168),
+              ],
+            },
+            {
+              label: 'Claude and GPT Models',
+              buckets: [bucket('claude-week', 'Weekly limit', 0.99, 168)],
+            },
+          ],
+        },
+        b: {
+          status: 'success',
+          groups: [
+            {
+              label: 'Gemini Models',
+              buckets: [bucket('gemini-week', 'Weekly limit', 0.8, 168)],
+            },
+          ],
+        },
+      }),
+      NOW
+    );
+
+    expect(summaries[0]?.window).toMatchObject({
+      labelKey: 'quota_management.summary_antigravity_gemini_weekly',
+      remainingPercent: 104,
+      capacityPercent: 200,
+    });
+    expect(summaries[0]?.accounts.map((account) => account.remaining)).toEqual([24, 80]);
+  });
+
   test('keeps a weekly xAI reset when the percent is unknown', () => {
     const summaries = buildProviderSummaries(
       [entry('xai', 'grok')],

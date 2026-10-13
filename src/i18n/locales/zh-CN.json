@@ -1574,6 +1574,7 @@
     "summary_of": "共 {{capacity}}%",
     "summary_unloaded": "尚未加载",
     "summary_loading": "加载中…",
+    "summary_antigravity_gemini_weekly": "Gemini 模型周额度",
     "meta_loaded": "{{count}} 个已加载",
     "meta_attention": "{{count}} 个需关注",
     "empty_title": "暂无可查额度的凭证",

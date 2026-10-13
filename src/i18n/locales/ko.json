@@ -1576,6 +1576,7 @@
     "summary_of": "/ {{capacity}}%",
     "summary_unloaded": "아직 로드되지 않음",
     "summary_loading": "불러오는 중…",
+    "summary_antigravity_gemini_weekly": "Gemini 주간 할당량",
     "meta_loaded": "{{count}}개 로드됨",
     "meta_attention": "{{count}}개 주의 필요",
     "empty_title": "할당량 확인 가능한 자격 증명 없음",

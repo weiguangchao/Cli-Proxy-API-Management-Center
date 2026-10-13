@@ -1581,6 +1581,7 @@
     "summary_of": "из {{capacity}}%",
     "summary_unloaded": "Ещё не загружено",
     "summary_loading": "Загрузка…",
+    "summary_antigravity_gemini_weekly": "Недельная квота Gemini",
     "meta_loaded": "{{count}} загружено",
     "meta_attention": "{{count}} требуют внимания",
     "empty_title": "Нет учётных данных с квотами",

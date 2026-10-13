@@ -1576,6 +1576,7 @@
     "summary_of": "of {{capacity}}%",
     "summary_unloaded": "Not loaded yet",
     "summary_loading": "Loading…",
+    "summary_antigravity_gemini_weekly": "Gemini weekly quota",
     "meta_loaded": "{{count}} loaded",
     "meta_attention": "{{count}} need attention",
     "empty_title": "No quota-capable credentials",
