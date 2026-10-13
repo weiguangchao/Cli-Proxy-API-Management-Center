@@ -27,6 +27,7 @@ import { bindQuotaClasses, type QuotaBodySections } from '../types';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '../providers';
 import { isQuotaRefreshDisabled, type QuotaFileEntry } from '../logic';
 import { formatRecoveryDuration, resolveQuotaExhaustion } from '../exhaustion';
+import { useQuotaSkeletonColumns } from '../hooks/useQuotaSkeletonColumns';
 import { useClaudeResetGrants } from '../providers/claude/ClaudeResetGrants';
 import { ClaudeResetGrantDetails } from '../providers/claude/ClaudeResetGrantDetails';
 import bodyStyles from './QuotaBody.module.scss';
@@ -34,8 +35,6 @@ import styles from './QuotaAccountRow.module.scss';
 
 /** 额度页列表外衣：QuotaBody 模块绑定成类型化契约（缺键在模块初始化即抛）。 */
 const quotaClasses = bindQuotaClasses(bodyStyles, 'QuotaBody.module.scss');
-
-const SKELETON_WINDOW_COUNT = 3;
 
 export type QuotaAccountRowProps = {
   entry: QuotaFileEntry;
@@ -78,6 +77,7 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
 
   const status = quota?.status ?? 'idle';
   const loading = status === 'loading';
+  const { windowsRef, skeletonWindowCount } = useQuotaSkeletonColumns(loading);
   const claudeReset = useClaudeResetGrants(
     file,
     entry.type === 'claude' && status !== 'idle',
@@ -167,7 +167,9 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
           )}
         </div>
       </div>
-      <div className={`${styles.windows} ${bodyStyles.listWindows}`}>{windows}</div>
+      <div ref={windowsRef} className={`${styles.windows} ${bodyStyles.listWindows}`}>
+        {windows}
+      </div>
       <div className={`${styles.details} ${bodyStyles.listDetails}`}>
         {claudeDetails}
         {details}
@@ -184,7 +186,7 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
     ) : loading ? (
       <div className={styles.skeleton} aria-busy="true">
         <span className={styles.srOnly}>{t(`${adapter.i18nPrefix}.loading`)}</span>
-        {Array.from({ length: SKELETON_WINDOW_COUNT }, (_, column) => (
+        {Array.from({ length: skeletonWindowCount }, (_, column) => (
           <div key={column} className={styles.skeletonWindow} aria-hidden="true">
             <span className={styles.skeletonLabel} />
             <span className={styles.skeletonTrack} />
