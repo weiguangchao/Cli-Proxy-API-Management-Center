@@ -6,6 +6,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: 12px;
+  /* 工作区本身还有 14px 的列间距，这里再拉开与上方标签的距离。 */
+  margin-top: 18px;
   min-width: 0;
 }
 
