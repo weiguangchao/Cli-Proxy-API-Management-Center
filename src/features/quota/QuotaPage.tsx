@@ -26,6 +26,7 @@ import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { getTypeLabel } from '@/features/authFiles/constants';
 import { QuotaHeader } from './components/QuotaHeader';
 import { QuotaAccountRow } from './components/QuotaAccountRow';
+import { QuotaProviderSummary } from './components/QuotaProviderSummary';
 import { QuotaTimeline } from './components/QuotaTimeline';
 import {
   CARD_ENTRANCE_BUDGET_MS,
@@ -46,6 +47,7 @@ import {
   sortQuotaEntries,
   type QuotaFileEntry,
 } from './logic';
+import { buildProviderSummaries } from './providerSummary';
 import { nextRecoveryMs } from './resetSchedule';
 import { QUOTA_ADAPTERS, getQuotaSetter, type QuotaCardState } from './providers';
 import type { QuotaProviderType } from './providers/types';
@@ -186,6 +188,13 @@ export function QuotaPage() {
     setSearch(value);
     setPage(1);
   }, []);
+
+  // 七天余量总览跟随当前 tab，不跟随搜索。
+  const summaryNow = useNow(entries.length > 0);
+  const providerSummaries = useMemo(
+    () => buildProviderSummaries(filterEntriesByTab(entries, tab), getQuota, summaryNow),
+    [entries, getQuota, summaryNow, tab]
+  );
 
   const resolveNextRecovery = useCallback(
     (entry: QuotaFileEntry) => nextRecoveryMs(entry.type, getQuota(entry), sortNow),
@@ -350,6 +359,12 @@ export function QuotaPage() {
             onChange={handleTabChange}
           />
         </div>
+
+        <QuotaProviderSummary
+          summaries={providerSummaries}
+          resolvedTheme={resolvedTheme}
+          nowMs={summaryNow}
+        />
 
         <div className={styles.toolbar}>
           <div className={styles.search}>

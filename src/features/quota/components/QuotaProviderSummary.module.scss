@@ -1,0 +1,169 @@
+@use '../../../styles/mixins' as *;
+
+/* 等宽轨道从左向右排，装不下就换行，末行不把单卡拉满整行。 */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px 18px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-primary);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.iconWrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg-tertiary) 70%, transparent);
+}
+
+.icon {
+  display: block;
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
+.iconFallback {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-secondary);
+}
+
+.name {
+  margin: 0;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--text-primary);
+  @include text-ellipsis;
+}
+
+.count {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.window {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  @include text-ellipsis;
+}
+
+.ratio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+  margin: 0;
+  min-width: 0;
+}
+
+.remaining {
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.capacity {
+  font-size: 13px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.segments {
+  display: flex;
+  gap: 3px;
+  min-width: 0;
+}
+
+.segment {
+  flex: 1 1 0;
+  height: 6px;
+  min-width: 0;
+  border-radius: $radius-full;
+  background: color-mix(in srgb, var(--text-primary) 9%, transparent);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 360ms var(--ease-out-strong, ease);
+}
+
+.fillHigh {
+  background: var(--viz-success);
+}
+
+.fillMedium {
+  background: var(--quota-medium-color);
+}
+
+.fillLow {
+  background: var(--viz-failure);
+}
+
+.reset {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.resetDot {
+  color: var(--text-quaternary);
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+}
