@@ -14,7 +14,7 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconRefreshCw } from '@/components/ui/icons';
 import { useNow } from '@/hooks/useNow';
-import type { ResolvedTheme } from '@/types';
+import type { ClaudeQuotaState, ResolvedTheme } from '@/types';
 import { resolveQuotaErrorMessage } from '@/utils/quota';
 import { getQuotaAccountLabel } from '@/utils/quota/identity';
 import {
@@ -30,6 +30,7 @@ import { formatRecoveryDuration, resolveQuotaExhaustion } from '../exhaustion';
 import { useQuotaSkeletonColumns } from '../hooks/useQuotaSkeletonColumns';
 import { useClaudeResetGrants } from '../providers/claude/ClaudeResetGrants';
 import { ClaudeResetGrantDetails } from '../providers/claude/ClaudeResetGrantDetails';
+import { hasClaudeUsageData } from '../providers/claude/data';
 import bodyStyles from './QuotaBody.module.scss';
 import styles from './QuotaAccountRow.module.scss';
 
@@ -66,6 +67,8 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
   const now = useNow();
   const adapter = QUOTA_ADAPTERS[entry.type];
   const file = entry.file;
+  const retainedClaudeUsage =
+    entry.type === 'claude' && hasClaudeUsageData(quota as ClaudeQuotaState | undefined);
   const accountLabel = getQuotaAccountLabel(file);
 
   // 挂载时捕获一次延迟：后续 props 变 null 不影响本行（React 19 禁渲染期读 ref）
@@ -171,6 +174,16 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
         {windows}
       </div>
       <div className={`${styles.details} ${bodyStyles.listDetails}`}>
+        {retainedClaudeUsage && loading && (
+          <div role="status" aria-busy="true" className={quotaClasses.quotaMessage}>
+            {t(`${adapter.i18nPrefix}.loading`)}
+          </div>
+        )}
+        {retainedClaudeUsage && status === 'error' && (
+          <div className={styles.errorStrip} role="alert">
+            {t(`${adapter.i18nPrefix}.load_failed`, { message: errorMessage })}
+          </div>
+        )}
         {claudeDetails}
         {details}
       </div>
@@ -208,7 +221,7 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
       data-exhausted={exhaustion ? '' : undefined}
       data-idle={status === 'idle' ? '' : undefined}
     >
-      {status === 'success' && quota ? (
+      {(status === 'success' || retainedClaudeUsage) && quota ? (
         <adapter.Body quota={quota} classes={quotaClasses} layout={renderColumns} />
       ) : (
         renderColumns({ plan: null, details: null, windows: placeholderWindows })

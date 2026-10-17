@@ -208,7 +208,9 @@ export function XaiQuotaBody({ quota, classes, layout }: QuotaBodyProps<XaiQuota
           <span className={classes.quotaPercent}>
             {weeklyUsed === null
               ? t('xai_quota.usage_unavailable')
-              : t('xai_quota.used_percent', { percent: formatXaiPercent(weeklyUsed) })}
+              : layout
+                ? t('xai_quota.used_percent', { percent: formatXaiPercent(weeklyUsed) })
+                : formatXaiPercent(100 - weeklyUsed)}
           </span>
           {weeklyResetDisplay && (
             <QuotaResetLabel display={weeklyResetDisplay} classes={classes} soon={weeklySoon} />
@@ -292,16 +294,24 @@ export function XaiQuotaBody({ quota, classes, layout }: QuotaBodyProps<XaiQuota
 
   return (
     <>
-      {(subscriptionLabel || headerReset) && (
+      {(subscriptionLabel || headerReset || onDemandCap <= 0) && (
         <div className={classes.codexPlan}>
           {planChip}
+          {onDemandCap <= 0 && (
+            <span className={classes.codexPlanItem}>
+              <span className={classes.codexPlanLabel}>{t('xai_quota.pay_as_you_go_label')}</span>
+              <span className={classes.codexPlanValue}>
+                {t('xai_quota.pay_as_you_go_disabled')}
+              </span>
+            </span>
+          )}
           {resetsChip}
         </div>
       )}
       {prepaidChip}
       {weeklyRow}
       {productUsage}
-      {payAsYouGo}
+      {onDemandCap > 0 ? payAsYouGo : null}
       {monthlyRow}
     </>
   );

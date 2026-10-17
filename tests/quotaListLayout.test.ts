@@ -16,10 +16,12 @@ import { sortAntigravityQuotaGroups } from '@/features/quota/providers/antigravi
 import { ClaudeQuotaBody } from '@/features/quota/providers/claude/ClaudeQuotaBody';
 import { CodexQuotaBody } from '@/features/quota/providers/codex/CodexQuotaBody';
 import { KimiQuotaBody } from '@/features/quota/providers/kimi/KimiQuotaBody';
+import { MetaQuotaBody } from '@/features/quota/providers/meta/MetaQuotaBody';
 import { XaiQuotaBody } from '@/features/quota/providers/xai/XaiQuotaBody';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses, type QuotaBodySections } from '@/features/quota/types';
 import { maskEmail } from '@/utils/format';
 import { getQuotaAccountLabel } from '@/utils/quota/identity';
+import { buildXaiBillingSummary } from '@/utils/quota';
 import { DAY_MS, HOUR_MS } from '@/utils/time/durations';
 import type {
   AntigravityQuotaGroup,
@@ -121,7 +123,26 @@ describe('provider body sections', () => {
     const quota: ClaudeQuotaState = {
       status: 'success',
       planType: 'plan_max20',
-      extraUsage: { is_enabled: true, used_credits: 150, monthly_limit: 5000 } as never,
+      extraUsage: {
+        isEnabled: true,
+        usedCredits: 150,
+        monthlyLimit: 5000,
+        utilization: null,
+        currency: 'USD',
+        disabledReason: null,
+        userDisabled: null,
+        spendLimitReached: null,
+      },
+      dollarWindows: [
+        {
+          key: 'independent_balance',
+          limitDollars: 100,
+          usedDollars: 5.04,
+          remainingDollars: 94.96,
+          utilization: 5.04,
+          resetsAt: null,
+        },
+      ],
       windows: [
         {
           id: 'seven-day',
@@ -139,6 +160,10 @@ describe('provider body sections', () => {
 
     expect(slotOf(markup, 'plan')).toBe('<span class="codexPlanValue">Max 20x</span>');
     expect(slotOf(markup, 'details')).toContain('$1.50 / $50.00');
+    expect(slotOf(markup, 'details')).toContain('$94.96 remaining');
+    expect(slotOf(markup, 'details')).toContain('independent_balance');
+    expect(slotOf(markup, 'windows')).not.toContain('independent_balance');
+    expect(slotOf(markup, 'details')).not.toContain('quotaBar');
     expect(slotOf(markup, 'windows')).toContain('7-day limit');
     expect(slotOf(markup, 'windows')).toContain('98%');
     // The label belongs to the stacked chip only; the list prints the value alone.
@@ -191,6 +216,50 @@ describe('provider body sections', () => {
     expect(slotOf(markup, 'plan')).toContain('premiumPlanValue');
     expect(slotOf(markup, 'details')).toBe('');
     expect(slotOf(markup, 'windows')).toContain('quotaMessage');
+  });
+
+  test('xAI keeps used percentage in the list and disabled pay-as-you-go in details', () => {
+    const markup = renderToStaticMarkup(
+      createElement(XaiQuotaBody, {
+        quota: {
+          status: 'success',
+          billing: buildXaiBillingSummary({
+            creditUsagePercent: 37,
+            currentPeriod: { type: 'USAGE_PERIOD_TYPE_WEEKLY' },
+            onDemandCap: { val: 0 },
+          }),
+        },
+        classes,
+        layout: slots,
+      })
+    );
+    expect(slotOf(markup, 'windows')).toContain('Used 37%');
+    expect(slotOf(markup, 'windows')).toContain('width:63%');
+    expect(slotOf(markup, 'windows')).not.toContain('Pay as you go');
+    expect(slotOf(markup, 'details')).toContain('Pay as you go');
+    expect(slotOf(markup, 'details')).toContain('Disabled');
+  });
+
+  test.each([true, false])('Muse keeps subscription status %s in the list details', (active) => {
+    const markup = renderToStaticMarkup(
+      createElement(MetaQuotaBody, {
+        quota: {
+          status: 'success',
+          data: {
+            planName: 'Muse Pro',
+            isSubscriptionActive: active,
+            windows: [{ id: 'weekly', usedPercent: 25 }],
+          },
+        },
+        classes,
+        layout: slots,
+      })
+    );
+    expect(slotOf(markup, 'plan')).toContain('Muse Pro');
+    expect(slotOf(markup, 'details')).toContain(
+      active ? 'Subscription active' : 'Subscription inactive'
+    );
+    expect(slotOf(markup, 'windows')).toContain('75% remaining');
   });
 
   test('Antigravity puts Gemini first and tags each group with its bucket count', () => {

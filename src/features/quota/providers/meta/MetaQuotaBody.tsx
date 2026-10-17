@@ -43,7 +43,9 @@ export function MetaQuotaBody({ quota, classes, layout }: QuotaBodyProps<MetaQuo
         const soon = window.id === soonestRowId;
         const label =
           window.id === 'window' && window.durationMinutes
-            ? t('meta_quota.window_duration', { minutes: window.durationMinutes })
+            ? window.durationMinutes % 60 === 0
+              ? t('meta_quota.window_duration_hours', { hours: window.durationMinutes / 60 })
+              : t('meta_quota.window_duration', { minutes: window.durationMinutes })
             : t(`meta_quota.${window.id}`);
         return (
           <div key={window.id} className={classes.quotaRow}>
@@ -85,7 +87,7 @@ export function MetaQuotaBody({ quota, classes, layout }: QuotaBodyProps<MetaQuo
 
   return (
     <>
-      {(data.planName || data.isSubscriptionActive !== undefined) && (
+      {data.planName && (
         <div className={classes.codexPlan}>
           {data.planName && (
             <span className={classes.codexPlanItem}>
@@ -93,7 +95,6 @@ export function MetaQuotaBody({ quota, classes, layout }: QuotaBodyProps<MetaQuo
               <span className={classes.codexPlanValue}>{data.planName}</span>
             </span>
           )}
-          {subscriptionChip}
         </div>
       )}
       {windowRows}
