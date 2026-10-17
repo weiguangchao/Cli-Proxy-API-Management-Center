@@ -40,8 +40,22 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Bump the patch of the previously published version (0.1.x); package.json owns major.minor.
       - name: Set build version
-        run: echo "VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! notes="$(gh release view "${RELEASE_TAG}" --json body -q .body 2>gh-error.log)"; then
+            if ! grep -qi 'not found' gh-error.log; then
+              cat gh-error.log >&2
+              exit 1
+            fi
+            notes=''
+          fi
+          version="$(PREVIOUS_RELEASE_NOTES="${notes}" bun scripts/nextReleaseVersion.ts)"
+          echo "Build version: ${version}"
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
 
       - name: Verify and build all-in-one HTML
         run: bun run verify

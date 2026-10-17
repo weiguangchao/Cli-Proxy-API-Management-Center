@@ -32,7 +32,7 @@ Use Bun; `package.json` pins `bun@1.3.14`, and CI uses Node.js 24. Keep dependen
 
 The production artifact is a single `dist/index.html` with JS/CSS and bundled assets inlined by `vite-plugin-singlefile`. The release workflow runs on every push to `main`, renames it to `management.html` for backend hosting, and republishes a single rolling release under the force-moved `latest` tag (the backend reads `releases/latest` and compares the asset digest); do not add per-version release tags.
 
-Preserve hash routing and single-file deployment. Changes to assets, imports, code splitting, or build configuration must not introduce required external build artifacts. Do not edit generated `dist/` files. App version is injected as `__APP_VERSION__` from `VERSION`, then git tags, then the package version, falling back to `dev`.
+Preserve hash routing and single-file deployment. Changes to assets, imports, code splitting, or build configuration must not introduce required external build artifacts. Do not edit generated `dist/` files. App version is injected as `__APP_VERSION__` from `VERSION`, then git tags, then the package version, falling back to `dev`. In the release workflow, `scripts/nextReleaseVersion.ts` sets `VERSION` by bumping the patch of the previous `latest` release notes (re-runs of the same commit keep it); `package.json` owns major.minor and the patch floor.
 
 ## API Contracts & State
 
