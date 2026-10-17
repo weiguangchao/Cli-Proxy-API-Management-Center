@@ -119,7 +119,7 @@ describe('account column', () => {
 });
 
 describe('provider body sections', () => {
-  test('Claude puts the plan under the name, extra usage beside the actions', () => {
+  test('Claude puts the plan under the name, balances beside the actions, no extra usage', () => {
     const quota: ClaudeQuotaState = {
       status: 'success',
       planType: 'plan_max20',
@@ -159,7 +159,8 @@ describe('provider body sections', () => {
     );
 
     expect(slotOf(markup, 'plan')).toBe('<span class="codexPlanValue">Max 20x</span>');
-    expect(slotOf(markup, 'details')).toContain('$1.50 / $50.00');
+    expect(markup).not.toContain('$1.50');
+    expect(markup).not.toContain('Extra Usage');
     expect(slotOf(markup, 'details')).toContain('$94.96 remaining');
     expect(slotOf(markup, 'details')).toContain('independent_balance');
     expect(slotOf(markup, 'windows')).not.toContain('independent_balance');

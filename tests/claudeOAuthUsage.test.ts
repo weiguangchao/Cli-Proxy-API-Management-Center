@@ -421,12 +421,11 @@ describe('Claude usage snapshot rendering and retention', () => {
     expect(CLAUDE_CONFIG).not.toHaveProperty('resetQuota');
   });
 
-  test('renders enabled extra usage in minor units and each balance in dollars', () => {
+  test('renders each balance in dollars without the extra usage section', () => {
     const markup = render(quota);
-    expect(markup).toContain('Extra Usage');
-    expect(markup).toContain('Enabled');
-    expect(markup).toContain('Spent $12.50 / Limit $50.00');
-    expect(markup).toContain('25% used');
+    expect(markup).not.toContain('Extra Usage');
+    expect(markup).not.toContain('Spent $12.50 / Limit $50.00');
+    expect(markup).not.toContain('25% used');
     expect(markup).toContain('iguana_necktie');
     expect(markup).toContain('$94.96 remaining');
     expect(markup).toContain('Spent $5.04 / Limit $100.00');
@@ -438,9 +437,10 @@ describe('Claude usage snapshot rendering and retention', () => {
     expect(markup).not.toContain('No quota data available');
   });
 
-  test('renders disabled extra usage, reasons, and zero amounts', () => {
+  test('hides disabled extra usage and its reasons', () => {
     const markup = render({
       ...quota,
+      dollarWindows: [],
       extraUsage: {
         ...snapshot.extraUsage!,
         isEnabled: false,
@@ -452,11 +452,11 @@ describe('Claude usage snapshot rendering and retention', () => {
         disabledReason: 'user_disabled',
       },
     });
-    expect(markup).toContain('Disabled');
-    expect(markup).toContain('Spent $0.00 / Limit $0.00');
-    expect(markup).toContain('Disabled by user');
-    expect(markup).toContain('Spending limit reached');
-    expect(markup).toContain('Reason: user_disabled');
+    expect(markup).not.toContain('Extra Usage');
+    expect(markup).not.toContain('Spent $0.00 / Limit $0.00');
+    expect(markup).not.toContain('Disabled by user');
+    expect(markup).not.toContain('Spending limit reached');
+    expect(markup).not.toContain('Reason: user_disabled');
   });
 
   test('shows the last observation time when a retained snapshot is stale', () => {

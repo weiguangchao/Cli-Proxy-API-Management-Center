@@ -1,5 +1,5 @@
 /**
- * Claude 额度渲染体：套餐/额外用量 chip 行 + 用量窗口水位条。
+ * Claude 额度渲染体：套餐 chip、美元余额 + 用量窗口水位条（额外用量不展示）。
  */
 
 import { useMemo } from 'react';
@@ -20,7 +20,6 @@ export function ClaudeQuotaBody({ quota, classes, layout }: QuotaBodyProps<Claud
     [quota, now]
   );
   const windows = quota.windows ?? [];
-  const extraUsage = quota.extraUsage ?? null;
   const planType = quota.planType ?? null;
   const planLabel = planType ? t(`claude_quota.${planType}`) : null;
 
@@ -43,53 +42,6 @@ export function ClaudeQuotaBody({ quota, classes, layout }: QuotaBodyProps<Claud
           {t('claude_quota.stale_snapshot', {
             time: quota.observedAt ? new Date(quota.observedAt).toLocaleString(language) : '--',
           })}
-        </div>
-      )}
-      {extraUsage && (
-        <div className={layout ? classes.codexResetCredits : classes.quotaRow}>
-          <div className={classes.codexPlan}>
-            <span className={classes.codexPlanLabel}>{t('claude_quota.extra_usage_label')}</span>
-            <span className={classes.codexPlanValue}>
-              {layout && extraUsage.isEnabled
-                ? `${formatMoney(extraUsage.usedCredits, extraUsage.currency ?? 'USD', 100)} / ${formatMoney(extraUsage.monthlyLimit, extraUsage.currency ?? 'USD', 100)}`
-                : t(
-                    extraUsage.isEnabled === null
-                      ? 'claude_quota.plan_unknown'
-                      : extraUsage.isEnabled
-                        ? 'claude_quota.extra_usage_enabled'
-                        : 'claude_quota.extra_usage_disabled'
-                  )}
-            </span>
-          </div>
-          {(!layout || !extraUsage.isEnabled) && (
-            <div className={classes.quotaAmount}>
-              {t('claude_quota.usage_spent_limit', {
-                // Extra-usage amounts are minor units; dollar windows are already dollars.
-                spent: formatMoney(extraUsage.usedCredits, extraUsage.currency ?? 'USD', 100),
-                limit: formatMoney(extraUsage.monthlyLimit, extraUsage.currency ?? 'USD', 100),
-              })}
-            </div>
-          )}
-          {extraUsage.utilization !== null && (
-            <span className={classes.quotaReset}>
-              {t('claude_quota.usage_utilization', { percent: extraUsage.utilization })}
-            </span>
-          )}
-          {extraUsage.userDisabled && (
-            <span className={classes.quotaReset}>
-              {t('claude_quota.extra_usage_user_disabled')}
-            </span>
-          )}
-          {extraUsage.spendLimitReached && (
-            <span className={classes.quotaReset}>
-              {t('claude_quota.extra_usage_spend_limit_reached')}
-            </span>
-          )}
-          {extraUsage.disabledReason && (
-            <span className={classes.quotaReset}>
-              {t('claude_quota.extra_usage_disabled_reason', { reason: extraUsage.disabledReason })}
-            </span>
-          )}
         </div>
       )}
       {(quota.dollarWindows ?? []).map((balance) => {
@@ -134,7 +86,7 @@ export function ClaudeQuotaBody({ quota, classes, layout }: QuotaBodyProps<Claud
   );
 
   const windowRows =
-    windows.length === 0 && !extraUsage && !quota.dollarWindows?.length ? (
+    windows.length === 0 && !quota.dollarWindows?.length ? (
       <div className={classes.quotaMessage}>{t('claude_quota.empty_windows')}</div>
     ) : (
       windows.map((window, index) => {
