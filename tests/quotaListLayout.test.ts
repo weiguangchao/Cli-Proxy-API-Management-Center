@@ -263,7 +263,7 @@ describe('provider body sections', () => {
     expect(slotOf(markup, 'windows')).toContain('75% remaining');
   });
 
-  test('Antigravity puts Gemini first and keeps only Gemini groups on one line', () => {
+  test('Antigravity puts Argon before Gemini and keeps only Gemini groups on one line', () => {
     const group = (label: string, windows: string[]): AntigravityQuotaGroup => ({
       id: label,
       label,
@@ -281,8 +281,8 @@ describe('provider body sections', () => {
       group('Gemini 4 Argon', ['weekly']),
     ]);
     expect(groups.map(({ label }) => label)).toEqual([
-      'Gemini Models',
       'Gemini 4 Argon',
+      'Gemini Models',
       'Claude and GPT Models',
       'Image Models',
     ]);
@@ -295,8 +295,9 @@ describe('provider body sections', () => {
       })
     );
     const windows = slotOf(markup, 'windows');
+    expect(windows.indexOf('Gemini 4 Argon')).toBeLessThan(windows.indexOf('Gemini models'));
     expect(windows.indexOf('Gemini models')).toBeLessThan(windows.indexOf('Claude and GPT models'));
-    // Argon follows the Gemini group on its line; every other group starts a new one.
+    // The Gemini group follows Argon on its line; every other group starts a new one.
     expect(windows.match(/data-buckets="\d+"( data-row-start="")?/g)).toEqual([
       'data-buckets="1" data-row-start=""',
       'data-buckets="1"',

@@ -31,6 +31,7 @@ import {
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
 import type { QuotaProviderData } from '../types';
+import { resolveAntigravityGroupLabelKey } from './labels';
 
 export type AntigravityQuotaData = {
   groups: AntigravityQuotaGroup[];
@@ -40,12 +41,17 @@ export type AntigravityQuotaData = {
 
 const getAntigravityGroupOrder = (group: AntigravityQuotaGroup): number => {
   const label = group.label.toLowerCase();
-  if (label.includes('gemini')) return 0;
-  if (label.includes('claude') || label.includes('gpt')) return 1;
-  return 2;
+  if (label.includes('gemini')) {
+    return resolveAntigravityGroupLabelKey(group.label) === 'group_gemini_models' ? 1 : 0;
+  }
+  if (label.includes('claude') || label.includes('gpt')) return 2;
+  return 3;
 };
 
-/** Gemini 模型组在前、Claude 和 GPT 模型组在后，其余组按上游顺序垫底（稳定排序）。 */
+/**
+ * 单独计额的 Gemini 组（如 Gemini 4 Argon）在前，其后是 Gemini 模型组、Claude 和 GPT 模型组，
+ * 其余组按上游顺序垫底（稳定排序）。
+ */
 export const sortAntigravityQuotaGroups = (
   groups: AntigravityQuotaGroup[]
 ): AntigravityQuotaGroup[] =>
