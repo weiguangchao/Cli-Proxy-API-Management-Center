@@ -51,6 +51,21 @@ export function resolveAntigravityGroupLabelKey(label: string): string | null {
   return GROUP_LABEL_KEYS.get(normalizeText(label)) ?? null;
 }
 
+const isGeminiGroupLabel = (label: string): boolean => normalizeText(label).includes('gemini');
+
+/**
+ * 分组是否另起一行：相邻的 Gemini 系分组（如 Gemini 模型 + Gemini 4 Argon）同排，
+ * 其余分组各占一行。
+ */
+export function startsAntigravityGroupRow(
+  label: string,
+  previousLabel: string | undefined
+): boolean {
+  return (
+    previousLabel === undefined || !isGeminiGroupLabel(label) || !isGeminiGroupLabel(previousLabel)
+  );
+}
+
 /**
  * 解析分组描述中的模型列表，并追加该分组的补充模型（大小写不敏感去重）。
  * 描述不是「Models within this group: ...」格式时返回 null，由调用方显示原文。

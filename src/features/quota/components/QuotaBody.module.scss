@@ -38,19 +38,24 @@ $window-gap: 32px;
   }
 
   > .antigravityQuotaGroup[data-buckets='1'] {
-    grid-column: span 1;
+    grid-column: auto / span 1;
   }
 }
 
-/* Antigravity 分组只跨自己的桶数，各组并排成一行。仅在轨道数放得下整组时生效
+/* Antigravity 分组只跨自己的桶数，Gemini 系分组并排成一行。仅在轨道数放得下整组时生效
  *（n 条轨道至少需要 n × 最小列宽 + (n − 1) × 列距）：放不下就保持整行，
  * 组不会被拆开，也不会撑出隐式轨道。组内桶通常 1–2 个，生成到 4 留余量。 */
 @for $n from 2 through 4 {
   @container quota-windows (min-width: #{$n * $window-min + ($n - 1) * $window-gap}) {
     .listWindows > .antigravityQuotaGroup[data-buckets='#{$n}'] {
-      grid-column: span $n;
+      grid-column: auto / span $n;
     }
   }
+}
+
+/* 起始组钉在首条轨道，换到新行；其后的同系分组接在它右边。 */
+.listWindows > .antigravityQuotaGroup[data-row-start] {
+  grid-column-start: 1;
 }
 
 /* 账户名下的套餐行：普通档读作副标题，premium / elite 徽章保持定稿外观。 */

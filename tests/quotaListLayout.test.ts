@@ -263,7 +263,7 @@ describe('provider body sections', () => {
     expect(slotOf(markup, 'windows')).toContain('75% remaining');
   });
 
-  test('Antigravity puts Gemini first and tags each group with its bucket count', () => {
+  test('Antigravity puts Gemini first and keeps only Gemini groups on one line', () => {
     const group = (label: string, windows: string[]): AntigravityQuotaGroup => ({
       id: label,
       label,
@@ -278,9 +278,11 @@ describe('provider body sections', () => {
       group('Claude and GPT Models', ['5h', 'weekly']),
       group('Image Models', ['weekly']),
       group('Gemini Models', ['weekly']),
+      group('Gemini 4 Argon', ['weekly']),
     ]);
     expect(groups.map(({ label }) => label)).toEqual([
       'Gemini Models',
+      'Gemini 4 Argon',
       'Claude and GPT Models',
       'Image Models',
     ]);
@@ -294,10 +296,12 @@ describe('provider body sections', () => {
     );
     const windows = slotOf(markup, 'windows');
     expect(windows.indexOf('Gemini models')).toBeLessThan(windows.indexOf('Claude and GPT models'));
-    expect(windows.match(/data-buckets="\d+"/g)).toEqual([
+    // Argon follows the Gemini group on its line; every other group starts a new one.
+    expect(windows.match(/data-buckets="\d+"( data-row-start="")?/g)).toEqual([
+      'data-buckets="1" data-row-start=""',
       'data-buckets="1"',
-      'data-buckets="2"',
-      'data-buckets="1"',
+      'data-buckets="2" data-row-start=""',
+      'data-buckets="1" data-row-start=""',
     ]);
   });
 
@@ -363,13 +367,22 @@ describe('QuotaAccountRow contract', () => {
     expect(css).toMatch(/\.row\[data-idle\] \.windows \{\s*grid-column-end: -1;/);
   });
 
+  test('keeps the refresh action beside the windows when the row collapses', async () => {
+    const css = await rowCss();
+    expect(css).toMatch(
+      /@container quota-list \(max-width: 820px\) \{\s*\.row \{[\s\S]*?grid-template-areas:\s*'identity identity'\s*'windows actions'\s*'details details';/
+    );
+  });
+
   test('spans Antigravity groups side by side only when the windows column fits them', async () => {
     const css = await bodyCss();
     expect(css).toContain('container: quota-windows / inline-size;');
     expect(css).toMatch(
       /@container quota-windows \(min-width: #\{\$n \* \$window-min \+ \(\$n - 1\) \* \$window-gap\}\)/
     );
-    expect(css).toMatch(/\[data-buckets='#\{\$n\}'\] \{\s*grid-column: span \$n;/);
+    expect(css).toMatch(/\[data-buckets='#\{\$n\}'\] \{\s*grid-column: auto \/ span \$n;/);
+    // A row-start group lands on the first track, so the next family wraps to a new line.
+    expect(css).toMatch(/\.antigravityQuotaGroup\[data-row-start\] \{\s*grid-column-start: 1;/);
     // Side-by-side groups would misalign under the stacked-group divider.
     expect(css).toContain('&:not([data-buckets]) + &:not([data-buckets])');
   });

@@ -14,6 +14,7 @@ import {
   resolveAntigravityBucketLabelKey,
   resolveAntigravityGroupLabelKey,
   shouldShowAntigravityQuotaAvailable,
+  startsAntigravityGroupRow,
 } from './labels';
 
 const formatAntigravityDuration = (t: TFunction, deltaMs: number): string => {
@@ -143,19 +144,22 @@ export function AntigravityQuotaBody({
     groups.length === 0 ? (
       <div className={classes.quotaMessage}>{t('antigravity_quota.empty_models')}</div>
     ) : (
-      groups.map((group) => {
+      groups.map((group, groupIndex) => {
         const groupLabel = translateAntigravityQuotaLabel(
           group.label,
           resolveAntigravityGroupLabelKey(group.label),
           t
         );
+        const rowStart = startsAntigravityGroupRow(group.label, groups[groupIndex - 1]?.label);
 
         return (
-          // data-buckets lets the list span only this group's tracks, so groups share one line.
+          // data-buckets lets the list span only this group's tracks; data-row-start
+          // pins a group to the first track so only same-family groups share a line.
           <div
             key={group.id}
             className={classes.antigravityQuotaGroup}
             data-buckets={group.buckets.length}
+            data-row-start={rowStart ? '' : undefined}
           >
             <div className={classes.antigravityQuotaGroupHeader}>
               <span className={classes.antigravityQuotaGroupTitle}>{groupLabel}</span>
