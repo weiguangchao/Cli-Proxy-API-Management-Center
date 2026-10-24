@@ -113,11 +113,8 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
     quota?.errorStatus,
     quota?.error || t('common.unknown_error')
   );
-  const showReset =
-    status === 'success' &&
-    Boolean(adapter.resetQuota) &&
-    quota !== undefined &&
-    Boolean(adapter.canResetQuota?.(quota));
+  const showReset = status === 'success' && Boolean(adapter.resetQuota);
+  const canReset = quota !== undefined && Boolean(adapter.canResetQuota?.(quota));
   // An unresolved claim retains its idempotent retry action, even after the balance reaches zero.
   const showClaudeReset =
     entry.type === 'claude' &&
@@ -246,7 +243,7 @@ export function QuotaAccountRow(props: QuotaAccountRowProps) {
               type="button"
               className={styles.action}
               onClick={onReset}
-              disabled={!canRefresh || loading || resetting}
+              disabled={!canReset || !canRefresh || loading || resetting}
               title={t('codex_quota.reset_button')}
             >
               <IconRefreshCw size={13} className={resetting ? styles.spinning : undefined} />
