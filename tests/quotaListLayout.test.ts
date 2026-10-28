@@ -91,14 +91,25 @@ describe('groupQuotaEntries', () => {
 });
 
 describe('account column', () => {
-  test('masks the email local part and keeps the domain', () => {
-    expect(maskEmail('alice.wonderland@example.com')).toBe('ali***@example.com');
-    expect(maskEmail('bob@example.org')).toBe('b***@example.org');
-    expect(maskEmail('ab@example.net')).toBe('a***@example.net');
-    expect(maskEmail('  carol@example.net ')).toBe('ca***@example.net');
-    expect(maskEmail('a.b@c@example.com')).toBe('a.***@example.com');
+  test('masks the local part and domain while keeping its initial and final suffix', () => {
+    expect(maskEmail('alice.wonderland@example.com')).toBe('ali***@e***.com');
+    expect(maskEmail('bob@example.org')).toBe('b***@e***.org');
+    expect(maskEmail('ab@example.net')).toBe('a***@e***.net');
+    expect(maskEmail('  carol@example.net ')).toBe('ca***@e***.net');
+    expect(maskEmail('a.b@c@example.com')).toBe('a.***@e***.com');
     expect(maskEmail('not-an-email')).toBe('not***');
     expect(maskEmail('')).toBe('');
+  });
+
+  test.each([
+    ['guangchao@163.com', 'gua***@1***.com'],
+    ['weiguang@gmail.com', 'wei***@g***.com'],
+    ['tabuser@outlook.com', 'tab***@o***.com'],
+    ['ab@x.io', 'a***@x***.io'],
+    ['person@mail.company.co.uk', 'pe***@m***.uk'],
+    ['bob@localhost', 'b***@l***'],
+  ])('masks the provider in %s as %s', (email, expected) => {
+    expect(maskEmail(email)).toBe(expected);
   });
 
   test('shows the masked email and never the file name when an email exists', () => {
@@ -106,7 +117,7 @@ describe('account column', () => {
       name: 'claude-a96c9d90-alice.wonderland@example.com-pro.json',
       email: 'alice.wonderland@example.com',
     } as AuthFileItem;
-    expect(getQuotaAccountLabel(file)).toBe('ali***@example.com');
+    expect(getQuotaAccountLabel(file)).toBe('ali***@e***.com');
   });
 
   test('falls back to the file name, never to account secrets', () => {
