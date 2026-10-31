@@ -10,6 +10,7 @@ import { useNow } from '@/hooks/useNow';
 import { QuotaMeter } from '../../components/QuotaMeter';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
+import { planValueClassForTier, resolveKimiCardTier } from '../../cardTier';
 import type { QuotaBodyProps } from '../../types';
 
 export function KimiQuotaBody({ quota, classes, layout }: QuotaBodyProps<KimiQuotaState>) {
@@ -21,14 +22,15 @@ export function KimiQuotaBody({ quota, classes, layout }: QuotaBodyProps<KimiQuo
     [quota, now]
   );
   const rows = quota.rows ?? [];
-
-  if (rows.length === 0) {
-    const empty = <div className={classes.quotaMessage}>{t('kimi_quota.empty_data')}</div>;
-    return layout ? layout({ plan: null, details: null, windows: empty }) : empty;
-  }
+  const planLabel = quota.planName || t('kimi_quota.plan_unknown');
+  const planValueClass = planValueClassForTier(resolveKimiCardTier(quota.planName), classes);
+  const plan = <span className={planValueClass}>{planLabel}</span>;
 
   const windowRows = (
     <>
+      {rows.length === 0 && (
+        <div className={classes.quotaMessage}>{t('kimi_quota.empty_data')}</div>
+      )}
       {rows.map((row, index) => {
         const limit = row.limit;
         const used = row.used;
@@ -72,5 +74,17 @@ export function KimiQuotaBody({ quota, classes, layout }: QuotaBodyProps<KimiQuo
     </>
   );
 
-  return layout ? layout({ plan: null, details: null, windows: windowRows }) : windowRows;
+  if (layout) return layout({ plan, details: null, windows: windowRows });
+
+  return (
+    <>
+      <div className={classes.codexPlan}>
+        <span className={classes.codexPlanItem}>
+          <span className={classes.codexPlanLabel}>{t('kimi_quota.plan_label')}</span>
+          {plan}
+        </span>
+      </div>
+      {windowRows}
+    </>
+  );
 }

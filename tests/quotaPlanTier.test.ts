@@ -3,11 +3,7 @@ import en from '@/i18n/locales/en.json';
 import zhCN from '@/i18n/locales/zh-CN.json';
 import zhTW from '@/i18n/locales/zh-TW.json';
 import ru from '@/i18n/locales/ru.json';
-import {
-  ELITE_CODEX_PLAN_TYPE,
-  PREMIUM_CODEX_PLAN_TYPES,
-  resolvePlanTier,
-} from '@/utils/quota';
+import { ELITE_CODEX_PLAN_TYPE, PREMIUM_CODEX_PLAN_TYPES, resolvePlanTier } from '@/utils/quota';
 
 describe('Codex Pro display names', () => {
   for (const [locale, messages] of Object.entries({ en, 'zh-CN': zhCN, 'zh-TW': zhTW, ru })) {
@@ -37,6 +33,14 @@ describe('resolvePlanTier', () => {
     expect(resolvePlanTier('pro-lite')).toBe('premium');
     expect(resolvePlanTier('pro_lite')).toBe('premium');
   });
+
+  test.each(['promax', 'pro-max', 'pro_max', '  PRO_MAX  '])(
+    'recognizes Pro 500 as %s without changing the Pro 200 badge',
+    (planType) => {
+      expect(resolvePlanTier(planType)).toBe('elite');
+      expect(resolvePlanTier('pro')).toBe('elite');
+    }
+  );
 
   test('recognizes Business Premium without promoting other business entitlements', () => {
     expect(resolvePlanTier('self_serve_business_prolite')).toBe('premium');

@@ -3,11 +3,13 @@ import { normalizePlanType } from './parsers';
 /**
  * Codex 套餐档位 → 徽章样式的纯映射。
  *
- * - elite   → 液态铂金徽章（Pro 200，plan=pro）
+ * - elite   → 液态铂金徽章（Pro 200 / Pro 500）
  * - premium → 金卡徽章（Pro 100；Antigravity ultra / xAI paid 亦复用金卡类名）
  * - plain   → 普通文字徽章（plus/team/free/未知）
  */
 export type CodexPlanTier = 'elite' | 'premium' | 'plain';
+
+export const PRO_MAX_CODEX_PLAN_TYPES = new Set(['promax', 'pro-max', 'pro_max']);
 
 export const PREMIUM_CODEX_PLAN_TYPES = new Set([
   'pro',
@@ -18,7 +20,7 @@ export const PREMIUM_CODEX_PLAN_TYPES = new Set([
 ]);
 
 // Pro 200（plan=pro）在金色 premium 之上再进一档：液态铂金徽章，
-// 见 QuotaPage.module.scss 的 .elitePlanValue。
+// 见 QuotaBody.module.scss 的 .elitePlanValue。
 export const ELITE_CODEX_PLAN_TYPE = 'pro';
 
 /**
@@ -28,7 +30,8 @@ export const ELITE_CODEX_PLAN_TYPE = 'pro';
 export function resolvePlanTier(planType: string | null | undefined): CodexPlanTier {
   const normalized = normalizePlanType(planType);
   if (!normalized) return 'plain';
-  if (normalized === ELITE_CODEX_PLAN_TYPE) return 'elite';
+  if (normalized === ELITE_CODEX_PLAN_TYPE || PRO_MAX_CODEX_PLAN_TYPES.has(normalized))
+    return 'elite';
   if (PREMIUM_CODEX_PLAN_TYPES.has(normalized)) return 'premium';
   return 'plain';
 }

@@ -317,13 +317,32 @@ describe('provider body sections', () => {
     ]);
   });
 
-  test('Kimi has windows only, empty state included', () => {
+  test('Kimi shows an unknown plan without moving its empty state out of the windows', () => {
     const empty: KimiQuotaState = { status: 'success', rows: [] };
     const markup = renderToStaticMarkup(
       createElement(KimiQuotaBody, { quota: empty, classes, layout: slots })
     );
-    expect(slotOf(markup, 'plan')).toBe('');
+    expect(slotOf(markup, 'plan')).toBe('<span class="codexPlanValue">Unknown</span>');
     expect(slotOf(markup, 'windows')).toContain('quotaMessage');
+  });
+
+  test.each([
+    ['Allegro', 'elitePlanValue'],
+    ['Allegretto', 'premiumPlanValue'],
+    ['Moderato', 'codexPlanValue'],
+  ])('Kimi puts %s in the account column while keeping quota in the windows', (planName, badge) => {
+    const quota: KimiQuotaState = {
+      status: 'success',
+      planName,
+      rows: [{ id: 'weekly', label: 'Weekly limit', used: 25, limit: 100, resetHint: '' }],
+    };
+    const markup = renderToStaticMarkup(
+      createElement(KimiQuotaBody, { quota, classes, layout: slots })
+    );
+    expect(slotOf(markup, 'plan')).toBe(`<span class="${badge}">${planName}</span>`);
+    expect(slotOf(markup, 'windows')).toContain('75%');
+    expect(slotOf(markup, 'windows')).not.toContain(planName);
+    expect(slotOf(markup, 'details')).toBe('');
   });
 });
 

@@ -10,6 +10,7 @@ import {
   normalizePlanType,
   resolvePlanTier,
   PREMIUM_CODEX_PLAN_TYPES,
+  PRO_MAX_CODEX_PLAN_TYPES,
   buildResetDisplay,
   parseIsoToMs,
 } from '@/utils/quota';
@@ -47,6 +48,7 @@ export function CodexQuotaBody({ quota, classes, layout }: QuotaBodyProps<CodexQ
   const getPlanLabel = (pt?: string | null): string | null => {
     const normalized = normalizePlanType(pt);
     if (!normalized) return null;
+    if (PRO_MAX_CODEX_PLAN_TYPES.has(normalized)) return t('codex_quota.plan_promax');
     if (normalized === 'self_serve_business_prolite') {
       return t('codex_quota.plan_business_premium');
     }
